@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beatmaker - 森巴鼓團練習程序</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .bpm-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+
+        .bpm-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            width: 60px;
+            text-align: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #ff4444 0%, #cc3333 100%);
+        }
+
+        .btn.reset {
+            background: linear-gradient(135deg, #ff8800 0%, #cc6600 100%);
+        }
+
+        .btn.reset:hover {
+            box-shadow: 0 5px 15px rgba(255, 136, 0, 0.3);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .mode-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .expand-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expand-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .expand-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .expand-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .beats-info {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .sequencer {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .track {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+            min-width: fit-content;
+            transition: opacity 0.3s ease;
+        }
+
+        .track.disabled {
+            opacity: 0.3;
+        }
+
+        .track.disabled .steps {
+            pointer-events: none;
+        }
+
+        .track-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+            min-width: 280px;
+        }
+
+        .track-number {
+            background: #00ff88;
+            color: black;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .drum-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            min-width: 80px;
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .track-control-btn {
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+
+        .track-control-btn.active {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+        }
+
+        .steps-container {
+            flex: 1;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .steps {
+            display: flex;
+            gap: 2px;
+            min-width: fit-content;
+        }
+
+        .step {
+            width: 30px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: relative;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            border-color: #00ff88;
+            transform: scale(1.05);
+        }
+
+        .step.playing {
+            animation: pulse 0.2s ease;
+            box-shadow: 0 0 20px #00ff88;
+        }
+
+        .step.beat-marker {
+            border-color: #ffaa00;
+        }
+
+        .options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .position-indicator {
+            height: 20px;
+            margin-bottom: 10px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-left: 290px;
+            min-width: fit-content;
+        }
+
+        .position-line {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ff4444;
+            border-radius: 1px;
+            transition: left 0.1s linear;
+        }
+
+        .file-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1.05); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* 響應式設計 - 精確計算 */
+        @media (min-width: 1400px) {
+            .step {
+                width: 32px;
+            }
+        }
+
+        @media (max-width: 1399px) and (min-width: 1200px) {
+            .step {
+                width: 28px;
+                height: 38px;
+            }
+        }
+
+        @media (max-width: 1199px) and (min-width: 1000px) {
+            .step {
+                width: 25px;
+                height: 35px;
+                font-size: 9px;
+            }
+            .track-label {
+                min-width: 260px;
+            }
+            .position-indicator {
+                margin-left: 270px;
+            }
+        }
+
+        @media (max-width: 999px) and (min-width: 800px) {
+            .step {
+                width: 22px;
+                height: 32px;
+                font-size: 8px;
+            }
+            .track-label {
+                min-width: 240px;
+            }
+            .position-indicator {
+                margin-left: 250px;
+            }
+        }
+
+        @media (max-width: 799px) and (min-width: 600px) {
+            .step {
+                width: 20px;
+                height: 30px;
+                font-size: 8px;
+            }
+            .track-label {
+                min-width: 220px;
+            }
+            .position-indicator {
+                margin-left: 230px;
+            }
+        }
+
+        @media (max-width: 599px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .mode-controls {
+                justify-content: center;
+            }
+            .step {
+                width: 18px;
+                height: 28px;
+                font-size: 7px;
+            }
+            .track-label {
+                min-width: 200px;
+            }
+            .position-indicator {
+                margin-left: 210px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎵 Beatmaker - 森巴鼓團</div>
+            <div class="controls">
+                <button class="btn" id="playBtn">▶ 播放</button>
+                <button class="btn" id="clearBtn">清除</button>
+                <button class="btn reset" id="resetBtn">重置</button>
+                <div class="file-controls">
+                    <button class="btn" id="exportBtn">匯出</button>
+                    <button class="btn" id="importBtn">匯入</button>
+                    <input type="file" class="file-input" id="fileInput" accept=".json">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-row">
+            <div class="mode-controls">
+                <button class="mode-btn active" data-mode="ensemble">合奏模式</button>
+                <button class="mode-btn" data-mode="sequential">循環模式</button>
+            </div>
+            <div class="expand-controls">
+                <button class="expand-btn" id="expandBtn">+</button>
+                <span class="beats-info" id="beatsInfo">8拍</span>
+            </div>
+            <div class="bpm-control">
+                <span>BPM:</span>
+                <input type="number" class="bpm-input" id="bpmInput" value="65" min="60" max="200">
+            </div>
+            <div class="checkbox-container">
+                <input type="checkbox" class="checkbox" id="showNumbers">
+                <label for="showNumbers">數字提醒</label>
+            </div>
+        </div>
+
+        <div class="sequencer">
+            <div class="position-indicator">
+                <div class="position-line" id="positionLine"></div>
+            </div>
+            <div id="tracks"></div>
+        </div>
+    </div>
+
+    <script>
+        class Beatmaker {
+            constructor() {
+                this.isPlaying = false;
+                this.currentStep = 0;
+                this.currentTrack = 0;
+                this.bpm = 65;
+                this.mode = 'ensemble';
+                this.showNumbers = false;
+                this.stepInterval = null;
+                this.tracks = [];
+                this.totalBeats = 8;
+                this.maxBeats = 64;
+                this.drumSounds = {
+                    'surdo': { name: 'Surdo', freq: 50 },
+                    'caixa': { name: 'Caixa', freq: 250 },
+                    'tamborim': { name: 'Tamborim', freq: 400 },
+                    'cuica': { name: 'Cuíca', freq: 180 },
+                    'agogo': { name: 'Agogô', freq: 800 },
+                    'pandeiro': { name: 'Pandeiro', freq: 300 }
+                };
+                
+                this.audioContext = null;
+                this.initAudio();
+                this.initTracks();
+                this.initUI();
+            }
+
+            async initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.warn('Web Audio API not supported');
+                }
+            }
+
+            initTracks() {
+                this.tracks = Array(6).fill().map((_, i) => ({
+                    id: i,
+                    drumType: 'surdo',
+                    steps: Array(this.totalBeats * 4).fill(false),
+                    enabled: true,
+                    soundEnabled: true
+                }));
+            }
+
+            initUI() {
+                this.renderTracks();
+                this.bindEvents();
+                this.updateExpandButton();
+                this.initScrollPosition();
+            }
+
+            initScrollPosition() {
+                const sequencer = document.querySelector('.sequencer');
+                sequencer.scrollLeft = 0;
+            }
+
+            renderTracks() {
+                const tracksContainer = document.getElementById('tracks');
+                tracksContainer.innerHTML = '';
+
+                this.tracks.forEach((track, trackIndex) => {
+                    const trackElement = document.createElement('div');
+                    trackElement.className = `track ${!track.enabled ? 'disabled' : ''}`;
+                    
+                    const steps = track.steps.map((active, stepIndex) => {
+                        const beatNumber = Math.floor(stepIndex / 4) + 1;
+                        const displayNumber = (this.showNumbers && active) ? beatNumber : '';
+                        
+                        return `
+                            <div class="step ${active ? 'active' : ''} ${stepIndex % 4 === 0 ? 'beat-marker' : ''}" 
+                                 data-track="${trackIndex}" 
+                                 data-step="${stepIndex}">
+                                ${displayNumber}
+                            </div>
+                        `;
+                    }).join('');
+
+                    const drumOptions = Object.keys(this.drumSounds).map(key => 
+                        `<option value="${key}" ${track.drumType === key ? 'selected' : ''}>${this.drumSounds[key].name}</option>`
+                    ).join('');
+
+                    trackElement.innerHTML = `
+                        <div class="track-label">
+                            <div class="track-number">${trackIndex + 1}</div>
+                            <select class="drum-select" data-track="${trackIndex}">
+                                ${drumOptions}
+                            </select>
+                            <div class="track-controls">
+                                <div class="track-control-btn enable-btn ${track.enabled ? 'active' : ''}" 
+                                     data-track="${trackIndex}" data-type="enable">●</div>
+                                <div class="track-control-btn sound-btn ${track.soundEnabled ? 'active' : ''}" 
+                                     data-track="${trackIndex}" data-type="sound">🔊</div>
+                            </div>
+                        </div>
+                        <div class="steps-container">
+                            <div class="steps">
+                                ${steps}
+                            </div>
+                        </div>
+                    `;
+
+                    tracksContainer.appendChild(trackElement);
+                });
+            }
+
+            updateExpandButton() {
+                const expandBtn = document.getElementById('expandBtn');
+                const beatsInfo = document.getElementById('beatsInfo');
+                
+                expandBtn.disabled = this.totalBeats >= this.maxBeats;
+                beatsInfo.textContent = `${this.totalBeats}拍`;
+            }
+
+            bindEvents() {
+                // 播放按鈕
+                document.getElementById('playBtn').addEventListener('click', () => {
+                    this.togglePlay();
+                });
+
+                // 清除按鈕
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    this.clearAll();
+                });
+
+                // 重置按鈕
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetAll();
+                });
+
+                // 擴充按鈕
+                document.getElementById('expandBtn').addEventListener('click', () => {
+                    this.expandBeats();
+                });
+
+                // 匯出按鈕
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportPattern();
+                });
+
+                // 匯入按鈕
+                document.getElementById('importBtn').addEventListener('click', () => {
+                    document.getElementById('fileInput').click();
+                });
+
+                // 檔案輸入
+                document.getElementById('fileInput').addEventListener('change', (e) => {
+                    this.importPattern(e.target.files[0]);
+                });
+
+                // BPM控制
+                document.getElementById('bpmInput').addEventListener('change', (e) => {
+                    this.bpm = parseInt(e.target.value);
+                    if (this.isPlaying) {
+                        this.stop();
+                        this.play();
+                    }
+                });
+
+                // 模式切換
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.mode = btn.dataset.mode;
+                        if (this.isPlaying) {
+                            this.stop();
+                            this.play();
+                        }
+                    });
+                });
+
+                // 數字提醒
+                document.getElementById('showNumbers').addEventListener('change', (e) => {
+                    this.showNumbers = e.target.checked;
+                    this.renderTracks();
+                });
+
+                // 事件委派處理點擊
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('step')) {
+                        const trackIndex = parseInt(e.target.dataset.track);
+                        const stepIndex = parseInt(e.target.dataset.step);
+                        this.toggleStep(trackIndex, stepIndex);
+                    }
+
+                    if (e.target.classList.contains('track-control-btn')) {
+                        const trackIndex = parseInt(e.target.dataset.track);
+                        const type = e.target.dataset.type;
+                        this.toggleTrackControl(trackIndex, type);
+                    }
+                });
+
+                // 鼓聲選擇
+                document.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('drum-select')) {
+                        const trackIndex = parseInt(e.target.dataset.track);
+                        this.tracks[trackIndex].drumType = e.target.value;
+                    }
+                });
+            }
+
+            toggleStep(trackIndex, stepIndex) {
+                this.tracks[trackIndex].steps[stepIndex] = !this.tracks[trackIndex].steps[stepIndex];
+                this.renderTracks();
+            }
+
+            toggleTrackControl(trackIndex, type) {
+                if (type === 'enable') {
+                    this.tracks[trackIndex].enabled = !this.tracks[trackIndex].enabled;
+                } else if (type === 'sound') {
+                    this.tracks[trackIndex].soundEnabled = !this.tracks[trackIndex].soundEnabled;
+                }
+                this.renderTracks();
+            }
+
+            expandBeats() {
+                if (this.totalBeats >= this.maxBeats) return;
+
+                this.totalBeats += 8;
+                this.tracks.forEach(track => {
+                    const newSteps = Array(8 * 4).fill(false);
+                    track.steps = track.steps.concat(newSteps);
+                });
+
+                this.updateExpandButton();
+                this.renderTracks();
+                
+                // 設置捲動位置到新增的8拍開始處
+                setTimeout(() => {
+                    this.scrollToBeats(this.totalBeats - 7);
+                }, 100);
+            }
+
+            scrollToBeats(startBeat) {
+                const sequencer = document.querySelector('.sequencer');
+                const stepWidth = 32; // 根據CSS調整
+                const scrollPosition = (startBeat - 1) * 4 * stepWidth;
+                sequencer.scrollLeft = scrollPosition;
+            }
+
+            togglePlay() {
+                if (this.isPlaying) {
+                    this.stop();
+                } else {
+                    this.play();
+                }
+            }
+
+            play() {
+                if (!this.audioContext) {
+                    this.initAudio();
+                }
+
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                this.isPlaying = true;
+                this.currentStep = 0;
+                this.currentTrack = this.getFirstEnabledTrack();
+                
+                const playBtn = document.getElementById('playBtn');
+                playBtn.textContent = '⏸ 停止';
+                playBtn.classList.add('active');
+
+                const stepDuration = (60 / this.bpm / 4) * 1000;
+
+                this.stepInterval = setInterval(() => {
+                    this.playStep();
+                    this.updatePosition();
+                    this.autoScroll();
+                    this.nextStep();
+                }, stepDuration);
+            }
+
+            getFirstEnabledTrack() {
+                for (let i = 0; i < this.tracks.length; i++) {
+                    if (this.tracks[i].enabled) {
+                        return i;
+                    }
+                }
+                return 0;
+            }
+
+            stop() {
+                this.isPlaying = false;
+                if (this.stepInterval) {
+                    clearInterval(this.stepInterval);
+                    this.stepInterval = null;
+                }
+
+                const playBtn = document.getElementById('playBtn');
+                playBtn.textContent = '▶ 播放';
+                playBtn.classList.remove('active');
+
+                document.querySelectorAll('.step').forEach(step => {
+                    step.classList.remove('playing');
+                });
+
+                this.currentStep = 0;
+                this.currentTrack = this.getFirstEnabledTrack();
+                this.updatePosition();
+            }
+
+            playStep() {
+                if (this.mode === 'ensemble') {
+                    this.tracks.forEach((track, trackIndex) => {
+                        if (track.enabled && track.steps[this.currentStep]) {
+                            if (track.soundEnabled) {
+                                this.playSound(track.drumType);
+                            }
+                            this.highlightStep(trackIndex, this.currentStep);
+                        }
+                    });
+                } else {
+                    const track = this.tracks[this.currentTrack];
+                    if (track && track.enabled) {
+                        if (track.steps[this.currentStep]) {
+                            if (track.soundEnabled) {
+                                this.playSound(track.drumType);
+                            }
+                            this.highlightStep(this.currentTrack, this.currentStep);
+                        }
+                    }
+                }
+            }
+
+            highlightStep(trackIndex, stepIndex) {
+                const step = document.querySelector(`[data-track="${trackIndex}"][data-step="${stepIndex}"]`);
+                if (step) {
+                    step.classList.add('playing');
+                    setTimeout(() => {
+                        step.classList.remove('playing');
+                    }, 200);
+                }
+            }
+
+            nextStep() {
+                if (this.mode === 'ensemble') {
+                    this.currentStep = (this.currentStep + 1) % (this.totalBeats * 4);
+                } else {
+                    this.currentStep++;
+                    if (this.currentStep >= this.totalBeats * 4) {
+                        this.currentStep = 0;
+                        // 找下一個啟用的音軌
+                        let attempts = 0;
+                        do {
+                            this.currentTrack = (this.currentTrack + 1) % this.tracks.length;
+                            attempts++;
+                        } while (!this.tracks[this.currentTrack].enabled && attempts < this.tracks.length);
+                    }
+                }
+            }
+
+            updatePosition() {
+                const positionLine = document.getElementById('positionLine');
+                const totalSteps = this.totalBeats * 4;
+                const progress = this.currentStep / totalSteps;
+                
+                const stepsContainer = document.querySelector('.steps');
+                if (stepsContainer) {
+                    const containerWidth = stepsContainer.offsetWidth;
+                    const stepWidth = containerWidth / totalSteps;
+                    const offset = stepWidth / 2;
+                    
+                    positionLine.style.left = `${progress * containerWidth + offset}px`;
+                }
+            }
+
+            autoScroll() {
+                const sequencer = document.querySelector('.sequencer');
+                const currentBeat = Math.floor(this.currentStep / 4) + 1;
+                
+                // 每8拍進行一次捲動
+                if (currentBeat > 8 && (currentBeat - 1) % 8 === 0) {
+                    const scrollGroup = Math.floor((currentBeat - 1) / 8);
+                    this.scrollToBeats(scrollGroup * 8 + 1);
+                }
+                
+                // 回到開始時重置捲動
+                if (this.currentStep === 0) {
+                    sequencer.scrollLeft = 0;
+                }
+            }
+
+            playSound(drumType) {
+                if (!this.audioContext) return;
+
+                const sound = this.drumSounds[drumType];
+                if (!sound) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+
+                switch (drumType) {
+                    case 'surdo':
+                        oscillator.frequency.setValueAtTime(50, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
+                        gainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
+                        oscillator.type = 'triangle';
+                        break;
+                    case 'caixa':
+                        oscillator.frequency.setValueAtTime(250, this.audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.6, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+                        oscillator.type = 'square';
+                        break;
+                    case 'tamborim':
+                        oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                        oscillator.type = 'square';
+                        break;
+                    case 'cuica':
+                        oscillator.frequency.setValueAtTime(180, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(350, this.audioContext.currentTime + 0.1);
+                        oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
+                        oscillator.type = 'sawtooth';
+                        break;
+                    case 'agogo':
+                        oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.6);
+                        oscillator.type = 'sine';
+                        break;
+                    case 'pandeiro':
+                        oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(150, this.audioContext.currentTime + 0.2);
+                        gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                        oscillator.type = 'triangle';
+                        break;
+                }
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + 1);
+            }
+
+            clearAll() {
+                this.tracks.forEach(track => {
+                    track.steps.fill(false);
+                });
+                this.renderTracks();
+            }
+
+            resetAll() {
+                // 停止播放
+                if (this.isPlaying) {
+                    this.stop();
+                }
+                
+                // 重置為8拍
+                this.totalBeats = 8;
+                
+                // 重新初始化音軌
+                this.tracks = Array(6).fill().map((_, i) => ({
+                    id: i,
+                    drumType: 'surdo',
+                    steps: Array(this.totalBeats * 4).fill(false),
+                    enabled: true,
+                    soundEnabled: true
+                }));
+                
+                // 重置其他設定
+                this.bpm = 65;
+                this.mode = 'ensemble';
+                this.showNumbers = false;
+                this.currentStep = 0;
+                this.currentTrack = 0;
+                
+                // 更新UI
+                document.getElementById('bpmInput').value = this.bpm;
+                document.getElementById('showNumbers').checked = this.showNumbers;
+                
+                // 重置模式按鈕
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === 'ensemble');
+                });
+                
+                this.updateExpandButton();
+                this.renderTracks();
+                this.initScrollPosition();
+            }
+
+            exportPattern() {
+                const pattern = {
+                    version: '1.0',
+                    totalBeats: this.totalBeats,
+                    bpm: this.bpm,
+                    mode: this.mode,
+                    showNumbers: this.showNumbers,
+                    tracks: this.tracks.map(track => ({
+                        drumType: track.drumType,
+                        steps: track.steps,
+                        enabled: track.enabled,
+                        soundEnabled: track.soundEnabled
+                    })),
+                    exportDate: new Date().toISOString()
+                };
+
+                const dataStr = JSON.stringify(pattern, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `beatmaker-pattern-${new Date().toISOString().slice(0, 10)}.json`;
+                link.click();
+            }
+
+            async importPattern(file) {
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const pattern = JSON.parse(text);
+
+                    if (!pattern.version || !pattern.tracks) {
+                        throw new Error('無效的檔案格式');
+                    }
+
+                    // 停止播放
+                    if (this.isPlaying) {
+                        this.stop();
+                    }
+
+                    // 恢復設定
+                    this.totalBeats = pattern.totalBeats || 8;
+                    this.bpm = pattern.bpm || 65;
+                    this.mode = pattern.mode || 'ensemble';
+                    this.showNumbers = pattern.showNumbers || false;
+
+                    // 恢復音軌
+                    this.tracks = pattern.tracks.map((trackData, index) => ({
+                        id: index,
+                        drumType: trackData.drumType || 'surdo',
+                        steps: trackData.steps || Array(this.totalBeats * 4).fill(false),
+                        enabled: trackData.enabled !== undefined ? trackData.enabled : true,
+                        soundEnabled: trackData.soundEnabled !== undefined ? trackData.soundEnabled : true
+                    }));
+
+                    // 確保有6個音軌
+                    while (this.tracks.length < 6) {
+                        this.tracks.push({
+                            id: this.tracks.length,
+                            drumType: 'surdo',
+                            steps: Array(this.totalBeats * 4).fill(false),
+                            enabled: true,
+                            soundEnabled: true
+                        });
+                    }
+
+                    // 更新UI
+                    document.getElementById('bpmInput').value = this.bpm;
+                    document.getElementById('showNumbers').checked = this.showNumbers;
+                    
+                    // 更新模式按鈕
+                    document.querySelectorAll('.mode-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.mode === this.mode);
+                    });
+
+                    this.updateExpandButton();
+                    this.renderTracks();
+                    this.initScrollPosition();
+
+                    alert('匯入成功！');
+
+                } catch (error) {
+                    alert('匯入失敗：' + error.message);
+                }
+
+                // 清除檔案輸入
+                document.getElementById('fileInput').value = '';
+            }
+        }
+
+        // 初始化應用
+        document.addEventListener('DOMContentLoaded', () => {
+            new Beatmaker();
+        });
+    </script>
+</body>
+</html>
+
