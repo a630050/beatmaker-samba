@@ -198,18 +198,44 @@
             border-radius: 15px;
             padding: 20px;
             backdrop-filter: blur(10px);
-            overflow-x: auto;
             position: relative;
+            display: flex;
+            height: 500px; /* 固定高度 */
+        }
+
+        /* 左側固定控制區域 */
+		.tracks-controls {
+			width: 280px;
+			flex-shrink: 0;
+			background: rgba(0, 0, 0, 0.5);
+			border-radius: 10px;
+			padding: 8px;
+			margin-right: 10px;
+			margin-top: 20px; /* 新增：整體向下移動以對齊紅線軸下方的內容 */
+			overflow-y: auto;
+			border: 2px solid rgba(0, 255, 136, 0.3);
+		}
+
+
+        /* 右側捲動區域 */
+        .tracks-sequencer {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
         }
 
         .track {
             display: flex;
             align-items: center;
-            margin-bottom: 5px; /* 增加音軌間距 */
+            margin-bottom: 8px;
             gap: 5px;
             min-width: fit-content;
             transition: opacity 0.3s ease;
-            min-height: 50px; /* 設定最小高度確保有足夠空間 */
+            min-height: 50px;
         }
 
         .track.disabled {
@@ -223,17 +249,25 @@
         .track.current-playing {
             background: rgba(0, 255, 136, 0.1);
             border-radius: 10px;
-            padding: 8px; /* 增加內邊距 */
-            margin: 3px 0; /* 增加外邊距 */
+            padding: 8px;
+            margin: 3px 0;
         }
 
-        .track-label {
+        /* 左側音軌控制項目 */
+        .track-control-item {
             display: flex;
             align-items: center;
-            gap: 5px;
-            flex-shrink: 0;
-            min-width: 320px;
-            height: 50px; /* 設定固定高度 */
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+
+        .track-control-item.current-playing {
+            background: rgba(0, 255, 136, 0.15);
+            border: 1px solid rgba(0, 255, 136, 0.3);
         }
 
         .track-number {
@@ -250,25 +284,27 @@
             font-size: 14px;
         }
 
-        .drum-select {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            min-width: 80px;
-        }
+		.drum-select {
+			flex: 1;
+			min-width: 80px; /* 從100px縮小到80px */
+			padding: 4px 8px;
+			background: rgba(0, 0, 0, 0.7);
+			color: #00ff88;
+			border: 1px solid rgba(0, 255, 136, 0.3);
+			border-radius: 4px;
+			font-size: 12px;
+		}
+
 
         .track-controls {
             display: flex;
-            gap: 5px;
+            gap: 4px;
             align-items: center;
         }
 
         .track-control-btn {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
@@ -277,7 +313,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            font-size: 12px;
+            font-size: 11px;
             flex-shrink: 0;
         }
 
@@ -287,23 +323,19 @@
             color: #00ff88;
         }
 
-        .volume-control {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-left: 5px;
-        }
+		.volume-control {
+			flex: 0 0 60px; /* 從80px縮小到60px */
+		}
 
-        .volume-slider {
-            width: 60px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            outline: none;
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-        }
+		.volume-slider {
+			width: 100%;
+			height: 4px;
+			background: rgba(255, 255, 255, 0.2);
+			outline: none;
+			border-radius: 2px;
+			cursor: pointer;
+		}
+
 
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -324,21 +356,20 @@
             border: none;
         }
 
-        .steps-container {
-            flex: 1;
-            overflow: visible; /* 改為visible避免捲動條 */
-            position: relative;
-            min-height: 50px; /* 設定最小高度 */
+        /* 右側步驟區域 */
+        .track-steps {
             display: flex;
-            align-items: center; /* 垂直置中對齊 */
-            padding: 3px 0; /* 增加上下內邊距 */
+            align-items: center;
+            min-height: 50px;
+            padding: 3px 0;
+            margin-bottom: 8px;
         }
 
         .steps {
             display: flex;
             gap: 2px;
             min-width: fit-content;
-            align-items: center; /* 確保步驟垂直置中 */
+            align-items: center;
         }
 
         .step {
@@ -395,11 +426,10 @@
 
         .position-indicator {
             height: 10px;
-            margin-bottom: 5px; /* 增加與音軌的間距 */
+            margin-bottom: 10px;
             position: relative;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
-            margin-left: 330px;
             min-width: fit-content;
         }
 
@@ -536,50 +566,36 @@
             100% { transform: scale(1.05); }
         }
 
-        /* 響應式設計 - 優化縮放比例支援並增加容器高度 */
-/* 在所有媒體查詢中相應調整 */
-		@media (max-width: 1920px) {
-			.steps-container {
-				padding: 2px 0;
-			}
-		}
+        /* 響應式設計 */
+        @media (max-width: 1200px) {
+            .tracks-controls {
+                width: 260px;
+            }
+        }
 
-		@media (max-width: 1600px) {
-			.steps-container {
-				padding: 2px 0;
-			}
-		}
+        @media (max-width: 1000px) {
+            .sequencer {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .tracks-controls {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 15px;
+                max-height: 200px;
+            }
+            
+            .tracks-sequencer {
+                height: 400px;
+            }
+        }
 
-		@media (max-width: 1400px) {
-			.steps-container {
-				padding: 1px 0;
-			}
-		}
-
-		@media (max-width: 1200px) {
-			.steps-container {
-				padding: 1px 0;
-			}
-		}
-
-		@media (max-width: 1000px) {
-			.steps-container {
-				padding: 1px 0;
-			}
-		}
-
-		@media (max-width: 800px) {
-			.steps-container {
-				padding: 1px 0;
-			}
-		}
-
-		@media (max-width: 600px) {
-			.steps-container {
-				padding: 1px 0;
-			}
-		}
-
+        @media (max-width: 800px) {
+            .tracks-controls {
+                width: 100%;
+            }
+        }
 
     </style>
 </head>
@@ -627,10 +643,19 @@
         </div>
 
         <div class="sequencer">
-            <div class="position-indicator">
-                <div class="position-line" id="positionLine"></div>
+            <!-- 左側固定控制區域 -->
+            <div class="tracks-controls">
+                
+                <div id="trackControls"></div>
             </div>
-            <div id="tracks"></div>
+            
+            <!-- 右側捲動區域 -->
+            <div class="tracks-sequencer">
+                <div class="position-indicator">
+                    <div class="position-line" id="positionLine"></div>
+                </div>
+                <div id="trackSteps"></div>
+            </div>
         </div>
     </div>
 
@@ -774,7 +799,7 @@
             }
 
             initScrollPosition() {
-                const sequencer = document.querySelector('.sequencer');
+                const sequencer = document.querySelector('.tracks-sequencer');
                 sequencer.scrollLeft = 0;
             }
 
@@ -817,13 +842,46 @@
             }
 
             renderTracks() {
-                const tracksContainer = document.getElementById('tracks');
-                tracksContainer.innerHTML = '';
+                const trackControlsContainer = document.getElementById('trackControls');
+                const trackStepsContainer = document.getElementById('trackSteps');
+                
+                trackControlsContainer.innerHTML = '';
+                trackStepsContainer.innerHTML = '';
 
                 this.tracks.forEach((track, trackIndex) => {
-                    const trackElement = document.createElement('div');
                     const isCurrentTrack = this.mode === 'sequential' && this.isPlaying && trackIndex === this.currentTrack;
-                    trackElement.className = `track ${!track.enabled ? 'disabled' : ''} ${isCurrentTrack ? 'current-playing' : ''}`;
+                    
+                    // 渲染左側控制項目
+                    const controlElement = document.createElement('div');
+                    controlElement.className = `track-control-item ${isCurrentTrack ? 'current-playing' : ''}`;
+                    
+                    const drumOptions = Object.keys(this.drumSounds).map(key => 
+                        `<option value="${key}" ${track.drumType === key ? 'selected' : ''}>${this.drumSounds[key].name}</option>`
+                    ).join('');
+
+                    controlElement.innerHTML = `
+                        <div class="track-number">${this.trackLabels[trackIndex]}</div>
+                        <select class="drum-select" data-track="${trackIndex}">
+                            ${drumOptions}
+                        </select>
+                        <div class="track-controls">
+                            <div class="track-control-btn enable-btn ${track.enabled ? 'active' : ''}" 
+                                 data-track="${trackIndex}" data-type="enable">●</div>
+                            <div class="track-control-btn sound-btn ${track.soundEnabled ? 'active' : ''}" 
+                                 data-track="${trackIndex}" data-type="sound">🔊</div>
+                        </div>
+                        <div class="volume-control">
+                            <input type="range" class="volume-slider" 
+                                   min="0" max="1" step="0.1" value="${track.volume}"
+                                   data-track="${trackIndex}">
+                        </div>
+                    `;
+                    
+                    trackControlsContainer.appendChild(controlElement);
+                    
+                    // 渲染右側步驟
+                    const stepsElement = document.createElement('div');
+                    stepsElement.className = `track-steps ${!track.enabled ? 'disabled' : ''}`;
                     
                     const steps = track.steps.map((active, stepIndex) => {
                         const beatNumber = Math.floor(stepIndex / this.stepsPerBeat) + 1;
@@ -838,36 +896,13 @@
                         `;
                     }).join('');
 
-                    const drumOptions = Object.keys(this.drumSounds).map(key => 
-                        `<option value="${key}" ${track.drumType === key ? 'selected' : ''}>${this.drumSounds[key].name}</option>`
-                    ).join('');
-
-                    trackElement.innerHTML = `
-                        <div class="track-label">
-                            <div class="track-number">${this.trackLabels[trackIndex]}</div>
-                            <select class="drum-select" data-track="${trackIndex}">
-                                ${drumOptions}
-                            </select>
-                            <div class="track-controls">
-                                <div class="track-control-btn enable-btn ${track.enabled ? 'active' : ''}" 
-                                     data-track="${trackIndex}" data-type="enable">●</div>
-                                <div class="track-control-btn sound-btn ${track.soundEnabled ? 'active' : ''}" 
-                                     data-track="${trackIndex}" data-type="sound">🔊</div>
-                            </div>
-                            <div class="volume-control">
-                                <input type="range" class="volume-slider" 
-                                       min="0" max="1" step="0.1" value="${track.volume}"
-                                       data-track="${trackIndex}">
-                            </div>
-                        </div>
-                        <div class="steps-container">
-                            <div class="steps">
-                                ${steps}
-                            </div>
+                    stepsElement.innerHTML = `
+                        <div class="steps">
+                            ${steps}
                         </div>
                     `;
 
-                    tracksContainer.appendChild(trackElement);
+                    trackStepsContainer.appendChild(stepsElement);
                 });
             }
 
@@ -1170,40 +1205,39 @@
             }
 
             updateBeatNumbers() {
-				const positionLine = document.getElementById('positionLine');
-				const stepWidth = this.getStepWidth();
-				const gap = 2;
-				
-				// 修正：確保移動軸與音軌步驟完全同步
-				const stepsContainer = document.querySelector('.steps');
-				if (stepsContainer) {
-					const firstStep = stepsContainer.querySelector('.step');
-					if (firstStep) {
-						const actualStepWidth = firstStep.offsetWidth;
-						const actualGap = parseFloat(getComputedStyle(stepsContainer).gap) || 2;
-						const leftOffset = this.currentStep * (actualStepWidth + actualGap);
-						positionLine.style.left = `${leftOffset}px`;
-					}
-				} else {
-					// 備用方案：使用計算值
-					const leftOffset = this.currentStep * (stepWidth + gap);
-					positionLine.style.left = `${leftOffset}px`;
-				}
+                const positionLine = document.getElementById('positionLine');
+                const stepWidth = this.getStepWidth();
+                const gap = 2;
+                
+                // 修正：確保移動軸與音軌步驟完全同步
+                const stepsContainer = document.querySelector('.steps');
+                if (stepsContainer) {
+                    const firstStep = stepsContainer.querySelector('.step');
+                    if (firstStep) {
+                        const actualStepWidth = firstStep.offsetWidth;
+                        const actualGap = parseFloat(getComputedStyle(stepsContainer).gap) || 2;
+                        const leftOffset = this.currentStep * (actualStepWidth + actualGap);
+                        positionLine.style.left = `${leftOffset}px`;
+                    }
+                } else {
+                    // 備用方案：使用計算值
+                    const leftOffset = this.currentStep * (stepWidth + gap);
+                    positionLine.style.left = `${leftOffset}px`;
+                }
 
-				// 更新所有步驟的播放狀態
-				document.querySelectorAll('.step').forEach((step) => {
-					const trackIndex = parseInt(step.dataset.track);
-					const stepIndex = parseInt(step.dataset.step);
-					
-					if (this.mode === 'ensemble') {
-						step.classList.toggle('playing', stepIndex === this.currentStep);
-					} else if (this.mode === 'sequential') {
-						step.classList.toggle('playing', 
-							trackIndex === this.currentTrack && stepIndex === this.currentStep);
-					}
-				});
-			}
-
+                // 更新所有步驟的播放狀態
+                document.querySelectorAll('.step').forEach((step) => {
+                    const trackIndex = parseInt(step.dataset.track);
+                    const stepIndex = parseInt(step.dataset.step);
+                    
+                    if (this.mode === 'ensemble') {
+                        step.classList.toggle('playing', stepIndex === this.currentStep);
+                    } else if (this.mode === 'sequential') {
+                        step.classList.toggle('playing', 
+                            trackIndex === this.currentTrack && stepIndex === this.currentStep);
+                    }
+                });
+            }
 
             getStepWidth() {
                 const screenWidth = window.innerWidth;
@@ -1219,51 +1253,68 @@
             }
 
             scrollToBeginning() {
-                const sequencer = document.querySelector('.sequencer');
+                const sequencer = document.querySelector('.tracks-sequencer');
                 sequencer.scrollTo({
                     left: 0,
                     behavior: 'smooth'
                 });
             }
 
-            // 修正：根據拍子設定動態調整自動捲動邏輯
+            // 優化：針對八格一拍的自動捲動邏輯
             autoScroll() {
-                const sequencer = document.querySelector('.sequencer');
+                const sequencer = document.querySelector('.tracks-sequencer');
                 const stepWidth = this.getStepWidth();
                 const gap = 2;
                 
-                // 根據拍子設定動態調整每次顯示的拍數
+                // 根據拍子設定和總拍數動態調整捲動策略
                 let beatsPerView;
+                let scrollTiming;
+                
                 if (this.stepsPerBeat === 8) {
-                    // 8格一拍時，每次顯示4拍
-                    beatsPerView = 4;
+                    // 8格一拍時的優化策略
+                    if (this.totalBeats <= 16) {
+                        beatsPerView = 2; // 每次顯示2拍
+                        scrollTiming = 2; // 每2拍捲動一次
+                    } else if (this.totalBeats <= 32) {
+                        beatsPerView = 3; // 每次顯示3拍
+                        scrollTiming = 3; // 每3拍捲動一次
+                    } else {
+                        beatsPerView = 4; // 每次顯示4拍
+                        scrollTiming = 4; // 每4拍捲動一次
+                    }
                 } else if (this.stepsPerBeat === 4) {
-                    // 4格一拍時，每次顯示8拍
+                    // 4格一拍時
                     beatsPerView = 8;
+                    scrollTiming = 8;
                 } else if (this.stepsPerBeat === 2) {
-                    // 2格一拍時，每次顯示16拍
+                    // 2格一拍時
                     beatsPerView = 16;
+                    scrollTiming = 16;
                 }
                 
                 const currentBeat = Math.floor(this.currentStep / this.stepsPerBeat) + 1;
-                const viewGroup = Math.floor((currentBeat - 1) / beatsPerView);
+                const viewGroup = Math.floor((currentBeat - 1) / scrollTiming);
                 
-                // 計算應該捲動的時機
-                const shouldScrollAtBeat = viewGroup * beatsPerView + 1;
+                // 計算應該捲動的時機 - 使用更精確的時機計算
+                const shouldScrollAtBeat = viewGroup * scrollTiming + 1;
                 const shouldScrollAtStep = (shouldScrollAtBeat - 1) * this.stepsPerBeat;
                 
-                // 只在達到捲動拍數且不是循環到開頭的情況下才自動捲動
+                // 優化：使用更平滑的捲動邏輯，特別針對八格一拍
                 if (this.currentStep === shouldScrollAtStep && this.currentStep > 0) {
-                    const scrollTarget = viewGroup * beatsPerView * this.stepsPerBeat * (stepWidth + gap);
+                    const scrollTarget = viewGroup * scrollTiming * this.stepsPerBeat * (stepWidth + gap);
+                    
+                    // 針對八格一拍使用更快的捲動速度
+                    const scrollBehavior = this.stepsPerBeat === 8 ? 'auto' : 'smooth';
+                    
                     sequencer.scrollTo({
                         left: scrollTarget,
-                        behavior: 'smooth'
+                        behavior: scrollBehavior
                     });
                 }
             }
 
             scrollToBeats(startBeat) {
-                const sequencer = document.querySelector('.sequencer');
+                const sequencer = document.querySelector('.tracks-sequencer');
                 const stepWidth = this.getStepWidth();
                 const gap = 2;
                 
@@ -1581,4 +1632,4 @@
     </script>
 </body>
 </html>
-                                    
+
