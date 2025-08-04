@@ -1281,7 +1281,7 @@
                 });
             }
 
-            // 修正：根據拍子設定動態調整自動捲動邏輯
+            // 修正：根據拍子設定動態調整自動捲動邏輯，避免在最後一格觸發捲動
             autoScroll() {
                 const sequencer = document.querySelector('.sequencer');
                 const stepWidth = this.getStepWidth();
@@ -1290,25 +1290,23 @@
                 // 根據拍子設定動態調整每次顯示的拍數
                 let beatsPerView;
                 if (this.stepsPerBeat === 8) {
-                    // 8格一拍時，每次顯示4拍
                     beatsPerView = 4;
                 } else if (this.stepsPerBeat === 4) {
-                    // 4格一拍時，每次顯示8拍
                     beatsPerView = 8;
                 } else if (this.stepsPerBeat === 2) {
-                    // 2格一拍時，每次顯示16拍
                     beatsPerView = 16;
                 }
                 
                 const currentBeat = Math.floor(this.currentStep / this.stepsPerBeat) + 1;
                 const viewGroup = Math.floor((currentBeat - 1) / beatsPerView);
                 
-                // 計算應該捲動的時機
+                // 計算應該捲動的時機 - 改為在每個視窗組的第一拍第一步時捲動
                 const shouldScrollAtBeat = viewGroup * beatsPerView + 1;
                 const shouldScrollAtStep = (shouldScrollAtBeat - 1) * this.stepsPerBeat;
                 
-                // 只在達到捲動拍數且不是循環到開頭的情況下才自動捲動
-                if (this.currentStep === shouldScrollAtStep && this.currentStep > 0) {
+                // 修正：只在到達新視窗組的第一步且不是第一個視窗組時才捲動
+                // 避免在最後一格觸發捲動
+                if (this.currentStep === shouldScrollAtStep && viewGroup > 0) {
                     const scrollTarget = viewGroup * beatsPerView * this.stepsPerBeat * (stepWidth + gap);
                     sequencer.scrollTo({
                         left: scrollTarget,
