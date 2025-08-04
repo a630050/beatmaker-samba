@@ -131,6 +131,36 @@
             background: rgba(0, 255, 136, 0.2);
         }
 
+        /* 新增：拍子設定控制 */
+        .beat-setting-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .beat-setting-label {
+            color: #00ff88;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .beat-setting-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+
+        .beat-setting-btn.active {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.2);
+        }
+
         .expand-controls {
             display: flex;
             align-items: center;
@@ -194,7 +224,6 @@
             border-radius: 10px;
             padding: 5px;
             margin: 10px 0;
-            /* 移除浮動效果 */
         }
 
         .track-label {
@@ -500,25 +529,19 @@
             100% { transform: scale(1.05); }
         }
 
-        /* 響應式設計 */
-        @media (min-width: 1400px) {
-            .step {
-                width: 32px;
-                height: 32px;
-            }
-        }
-
-        @media (max-width: 1399px) and (min-width: 1200px) {
+        /* 響應式設計 - 優化縮放比例支援 */
+        @media (max-width: 1920px) {
             .step {
                 width: 28px;
                 height: 28px;
+                font-size: 9px;
             }
         }
 
-        @media (max-width: 1199px) and (min-width: 1000px) {
+        @media (max-width: 1600px) {
             .step {
-                width: 25px;
-                height: 25px;
+                width: 26px;
+                height: 26px;
                 font-size: 9px;
             }
             .track-label {
@@ -529,10 +552,10 @@
             }
         }
 
-        @media (max-width: 999px) and (min-width: 800px) {
+        @media (max-width: 1400px) {
             .step {
-                width: 22px;
-                height: 22px;
+                width: 24px;
+                height: 24px;
                 font-size: 8px;
             }
             .track-label {
@@ -541,18 +564,12 @@
             .position-indicator {
                 margin-left: 290px;
             }
-            .volume-slider {
-                width: 50px;
-            }
-            .sound-controls-grid {
-                grid-template-columns: 1fr;
-            }
         }
 
-        @media (max-width: 799px) and (min-width: 600px) {
+        @media (max-width: 1200px) {
             .step {
-                width: 20px;
-                height: 20px;
+                width: 22px;
+                height: 22px;
                 font-size: 8px;
             }
             .track-label {
@@ -562,14 +579,31 @@
                 margin-left: 270px;
             }
             .volume-slider {
-                width: 40px;
+                width: 50px;
             }
             .sound-controls-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 599px) {
+        @media (max-width: 1000px) {
+            .step {
+                width: 20px;
+                height: 20px;
+                font-size: 7px;
+            }
+            .track-label {
+                min-width: 240px;
+            }
+            .position-indicator {
+                margin-left: 250px;
+            }
+            .volume-slider {
+                width: 45px;
+            }
+        }
+
+        @media (max-width: 800px) {
             .header {
                 flex-direction: column;
                 align-items: stretch;
@@ -587,16 +621,33 @@
                 font-size: 7px;
             }
             .track-label {
-                min-width: 240px;
+                min-width: 220px;
             }
             .position-indicator {
-                margin-left: 250px;
+                margin-left: 230px;
             }
             .volume-slider {
-                width: 35px;
+                width: 40px;
             }
             .sound-controls-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .step {
+                width: 16px;
+                height: 16px;
+                font-size: 6px;
+            }
+            .track-label {
+                min-width: 200px;
+            }
+            .position-indicator {
+                margin-left: 210px;
+            }
+            .volume-slider {
+                width: 35px;
             }
         }
     </style>
@@ -622,6 +673,13 @@
             <div class="mode-controls">
                 <button class="mode-btn active" data-mode="ensemble">合奏模式</button>
                 <button class="mode-btn" data-mode="sequential">循環模式</button>
+            </div>
+            <!-- 新增：拍子設定控制 -->
+            <div class="beat-setting-controls">
+                <span class="beat-setting-label">拍子設定:</span>
+                <button class="beat-setting-btn" data-beat-setting="2">2格一拍</button>
+                <button class="beat-setting-btn active" data-beat-setting="4">4格一拍</button>
+                <button class="beat-setting-btn" data-beat-setting="8">8格一拍</button>
             </div>
             <div class="expand-controls">
                 <button class="expand-btn" id="expandBtn">+</button>
@@ -671,6 +729,7 @@
                 this.tracks = [];
                 this.totalBeats = 8;
                 this.maxBeats = 64;
+                this.stepsPerBeat = 4; // 新增：每拍的格數，預設4格一拍
                 
                 // 音軌標籤和預設樂器
                 this.trackLabels = ['R', 'C', 'S1', 'S2', 'S3', 'O'];
@@ -768,7 +827,7 @@
                 this.tracks = Array(6).fill().map((_, i) => ({
                     id: i,
                     drumType: this.defaultDrums[i],
-                    steps: Array(this.totalBeats * 4).fill(false),
+                    steps: Array(this.totalBeats * this.stepsPerBeat).fill(false),
                     enabled: true,
                     soundEnabled: true,
                     volume: 0.8
@@ -836,18 +895,17 @@
                     trackElement.className = `track ${!track.enabled ? 'disabled' : ''} ${isCurrentTrack ? 'current-playing' : ''}`;
                     
                     const steps = track.steps.map((active, stepIndex) => {
-                        const beatNumber = Math.floor(stepIndex / 4) + 1;
+                        const beatNumber = Math.floor(stepIndex / this.stepsPerBeat) + 1;
                         const displayNumber = (this.showNumbers && active) ? beatNumber : '';
                         
                         return `
-                            <div class="step ${active ? 'active' : ''} ${stepIndex % 4 === 0 ? 'beat-marker' : ''}" 
+                            <div class="step ${active ? 'active' : ''} ${stepIndex % this.stepsPerBeat === 0 ? 'beat-marker' : ''}" 
                                  data-track="${trackIndex}" 
                                  data-step="${stepIndex}">
                                 ${displayNumber}
                             </div>
                         `;
                     }).join('');
-
                     const drumOptions = Object.keys(this.drumSounds).map(key => 
                         `<option value="${key}" ${track.drumType === key ? 'selected' : ''}>${this.drumSounds[key].name}</option>`
                     ).join('');
@@ -961,6 +1019,15 @@
                     });
                 });
 
+                // 新增：拍子設定切換
+                document.querySelectorAll('.beat-setting-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.beat-setting-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.changeBeatSetting(parseInt(btn.dataset.beatSetting));
+                    });
+                });
+
                 // 數字提醒
                 document.getElementById('showNumbers').addEventListener('change', (e) => {
                     this.showNumbers = e.target.checked;
@@ -1011,6 +1078,38 @@
                 });
             }
 
+            // 新增：拍子設定變更方法
+            changeBeatSetting(newStepsPerBeat) {
+                if (this.isPlaying) {
+                    this.stop();
+                }
+
+                const oldStepsPerBeat = this.stepsPerBeat;
+                this.stepsPerBeat = newStepsPerBeat;
+
+                // 調整所有音軌的步驟數組
+                this.tracks.forEach(track => {
+                    const newSteps = Array(this.totalBeats * this.stepsPerBeat).fill(false);
+                    
+                    // 如果有舊的步驟資料，嘗試保留部分
+                    if (track.steps.length > 0) {
+                        for (let beat = 0; beat < this.totalBeats; beat++) {
+                            const oldBeatStart = beat * oldStepsPerBeat;
+                            const newBeatStart = beat * this.stepsPerBeat;
+                            
+                            // 保留每拍的第一個步驟狀態
+                            if (oldBeatStart < track.steps.length) {
+                                newSteps[newBeatStart] = track.steps[oldBeatStart];
+                            }
+                        }
+                    }
+                    
+                    track.steps = newSteps;
+                });
+
+                this.renderTracks();
+            }
+
             toggleStep(trackIndex, stepIndex) {
                 this.tracks[trackIndex].steps[stepIndex] = !this.tracks[trackIndex].steps[stepIndex];
                 this.renderTracks();
@@ -1053,8 +1152,9 @@
                 this.scrollToBeginning();
                 this.renderTracks(); // 重新渲染以顯示當前播放的音軌
                 
-                const totalSteps = this.totalBeats * 4;
-                const stepDuration = (60 / this.bpm) * 1000 / 4;
+                const totalSteps = this.totalBeats * this.stepsPerBeat;
+                // 修正：根據拍子設定調整步驟持續時間
+                const stepDuration = (60 / this.bpm) * 1000 / this.stepsPerBeat;
 
                 this.stepInterval = setInterval(() => {
                     this.updateStep();
@@ -1162,12 +1262,15 @@
 
             getStepWidth() {
                 const screenWidth = window.innerWidth;
-                if (screenWidth >= 1400) return 32;
-                if (screenWidth >= 1200) return 28;
-                if (screenWidth >= 1000) return 25;
-                if (screenWidth >= 800) return 22;
-                if (screenWidth >= 600) return 20;
-                return 18;
+                // 優化：根據螢幕寬度和縮放比例動態調整
+                if (screenWidth >= 1920) return 30;
+                if (screenWidth >= 1600) return 28;
+                if (screenWidth >= 1400) return 26;
+                if (screenWidth >= 1200) return 24;
+                if (screenWidth >= 1000) return 22;
+                if (screenWidth >= 800) return 20;
+                if (screenWidth >= 600) return 18;
+                return 16;
             }
 
             scrollToBeginning() {
@@ -1178,19 +1281,35 @@
                 });
             }
 
+            // 修正：根據拍子設定動態調整自動捲動邏輯
             autoScroll() {
                 const sequencer = document.querySelector('.sequencer');
                 const stepWidth = this.getStepWidth();
                 const gap = 2;
-                const stepsPerBeat = 4;
-                const beatsPerView = 8;
                 
-                const currentBeat = Math.floor(this.currentStep / stepsPerBeat) + 1;
+                // 根據拍子設定動態調整每次顯示的拍數
+                let beatsPerView;
+                if (this.stepsPerBeat === 8) {
+                    // 8格一拍時，每次顯示4拍
+                    beatsPerView = 4;
+                } else if (this.stepsPerBeat === 4) {
+                    // 4格一拍時，每次顯示8拍
+                    beatsPerView = 8;
+                } else if (this.stepsPerBeat === 2) {
+                    // 2格一拍時，每次顯示16拍
+                    beatsPerView = 16;
+                }
+                
+                const currentBeat = Math.floor(this.currentStep / this.stepsPerBeat) + 1;
                 const viewGroup = Math.floor((currentBeat - 1) / beatsPerView);
                 
-                // 只在不是循環到開頭的情況下才自動捲動
-                if (this.currentStep % (beatsPerView * stepsPerBeat) === 0 && this.currentStep > 0) {
-                    const scrollTarget = viewGroup * beatsPerView * stepsPerBeat * (stepWidth + gap);
+                // 計算應該捲動的時機
+                const shouldScrollAtBeat = viewGroup * beatsPerView + 1;
+                const shouldScrollAtStep = (shouldScrollAtBeat - 1) * this.stepsPerBeat;
+                
+                // 只在達到捲動拍數且不是循環到開頭的情況下才自動捲動
+                if (this.currentStep === shouldScrollAtStep && this.currentStep > 0) {
+                    const scrollTarget = viewGroup * beatsPerView * this.stepsPerBeat * (stepWidth + gap);
                     sequencer.scrollTo({
                         left: scrollTarget,
                         behavior: 'smooth'
@@ -1202,9 +1321,8 @@
                 const sequencer = document.querySelector('.sequencer');
                 const stepWidth = this.getStepWidth();
                 const gap = 2;
-                const stepsPerBeat = 4;
                 
-                const scrollTarget = (startBeat - 1) * stepsPerBeat * (stepWidth + gap);
+                const scrollTarget = (startBeat - 1) * this.stepsPerBeat * (stepWidth + gap);
                 sequencer.scrollTo({
                     left: scrollTarget,
                     behavior: 'smooth'
@@ -1218,7 +1336,7 @@
                 this.totalBeats += 8;
 
                 this.tracks.forEach(track => {
-                    const newSteps = Array(8 * 4).fill(false);
+                    const newSteps = Array(8 * this.stepsPerBeat).fill(false);
                     track.steps = [...track.steps, ...newSteps];
                 });
 
@@ -1375,11 +1493,12 @@
                 }
                 
                 this.totalBeats = 8;
+                this.stepsPerBeat = 4; // 重置拍子設定
                 
                 this.tracks = Array(6).fill().map((_, i) => ({
                     id: i,
                     drumType: this.defaultDrums[i],
-                    steps: Array(this.totalBeats * 4).fill(false),
+                    steps: Array(this.totalBeats * this.stepsPerBeat).fill(false),
                     enabled: true,
                     soundEnabled: true,
                     volume: 0.8
@@ -1398,6 +1517,11 @@
                     btn.classList.toggle('active', btn.dataset.mode === 'ensemble');
                 });
                 
+                // 重置拍子設定按鈕
+                document.querySelectorAll('.beat-setting-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.beatSetting === '4');
+                });
+                
                 this.updateExpandButton();
                 this.renderTracks();
                 this.initScrollPosition();
@@ -1405,11 +1529,12 @@
 
             exportPattern() {
                 const pattern = {
-                    version: '1.0',
+                    version: '1.1', // 更新版本號
                     totalBeats: this.totalBeats,
                     bpm: this.bpm,
                     mode: this.mode,
                     showNumbers: this.showNumbers,
+                    stepsPerBeat: this.stepsPerBeat, // 新增：拍子設定
                     tracks: this.tracks.map(track => ({
                         drumType: track.drumType,
                         steps: track.steps,
@@ -1449,11 +1574,12 @@
                     this.bpm = pattern.bpm || 65;
                     this.mode = pattern.mode || 'ensemble';
                     this.showNumbers = pattern.showNumbers || false;
+                    this.stepsPerBeat = pattern.stepsPerBeat || 4; // 新增：匯入拍子設定
 
                     this.tracks = pattern.tracks.map((trackData, index) => ({
                         id: index,
                         drumType: trackData.drumType || this.defaultDrums[index],
-                        steps: trackData.steps || Array(this.totalBeats * 4).fill(false),
+                        steps: trackData.steps || Array(this.totalBeats * this.stepsPerBeat).fill(false),
                         enabled: trackData.enabled !== undefined ? trackData.enabled : true,
                         soundEnabled: trackData.soundEnabled !== undefined ? trackData.soundEnabled : true,
                         volume: trackData.volume !== undefined ? trackData.volume : 0.8
@@ -1463,7 +1589,7 @@
                         this.tracks.push({
                             id: this.tracks.length,
                             drumType: this.defaultDrums[this.tracks.length] || 'surdo',
-                            steps: Array(this.totalBeats * 4).fill(false),
+                            steps: Array(this.totalBeats * this.stepsPerBeat).fill(false),
                             enabled: true,
                             soundEnabled: true,
                             volume: 0.8
@@ -1481,6 +1607,11 @@
                     
                     document.querySelectorAll('.mode-btn').forEach(btn => {
                         btn.classList.toggle('active', btn.dataset.mode === this.mode);
+                    });
+
+                    // 更新拍子設定按鈕
+                    document.querySelectorAll('.beat-setting-btn').forEach(btn => {
+                        btn.classList.toggle('active', parseInt(btn.dataset.beatSetting) === this.stepsPerBeat);
                     });
 
                     this.updateExpandButton();
