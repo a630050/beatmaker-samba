@@ -177,11 +177,12 @@
             background: rgba(255, 255, 255, 0.1);
             border: 2px solid transparent;
             color: white;
-            padding: 8px 16px;
+            /* 修改：與 mode-btn 的 padding 和 font-size 保持一致 */
+            padding: 10px 20px;
+            font-size: 14px; /* 與主要按鈕一致，或移除此行讓其繼承 */
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 12px;
         }
 
         .beat-setting-btn.active {
@@ -730,7 +731,12 @@
                 width: 100%;
             }
         }
-
+		@media (max-width: 800px) {
+            .step {
+                /* 在小螢幕上縮小步格內的數字字體，以配合變小的步格 */
+                font-size: 8px; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -1183,8 +1189,11 @@
                 const styles = window.getComputedStyle(sequencer);
                 const paddingX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
                 const contentWidth = sequencer.clientWidth - paddingX;
-                const MIN_STEP_SIZE = 20;
-                const MAX_STEP_SIZE = 35;
+                const isSmallScreen = window.innerWidth < 800;
+                
+                // 為小螢幕設定更小的步格尺寸限制
+                const MIN_STEP_SIZE = isSmallScreen ? 16 : 20;
+                const MAX_STEP_SIZE = isSmallScreen ? 24 : 35;				
                 const STEP_GAP = 2;
                 const stepsToFit = 8 * this.stepsPerBeat;
                 const totalGapWidth = (stepsToFit - 1) * STEP_GAP;
