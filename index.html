@@ -1729,8 +1729,7 @@
                 document.getElementById('fileInput').value = '';
             }
 
-		async exportMP3() {
-                // 新增一個檢查，確保 lamejs 已載入
+	            async exportMP3() {
                 if (typeof lamejs === 'undefined') {
                     alert('MP3 編碼函式庫 (lame.min.js) 載入失敗！請檢查您的網路連線或 CDN 連結是否正確。');
                     console.error("lamejs is not defined. MP3 export cannot proceed.");
@@ -1766,10 +1765,9 @@
                         throw new Error("Total duration is zero.");
                     }
                     
-                    // --- 這裡是唯一的修改點 ---
                     const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
 
-                    // 離線排程音訊
+                    // 離線排程音訊 (這部分不變)
                     if (this.mode === 'ensemble') {
                         for (let step = 0; step < this.totalBeats * this.stepsPerBeat; step++) {
                             const time = step * (60 / this.bpm / this.stepsPerBeat);
@@ -1795,22 +1793,34 @@
                     const renderedBuffer = await offlineContext.startRendering();
 					
 					const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128);
-                    const left = renderedBuffer.getChannelData(0);
-                    const right = renderedBuffer.getChannelData(1);
-                    
-                    const interleaved = new Int16Array(left.length + right.length);
-                    let dataIndex = 0;
+                    const leftFloat = renderedBuffer.getChannelData(0);
+                    const rightFloat = renderedBuffer.getChannelData(1);
 
-                    for (let i = 0; i < left.length; i++) {
-                        interleaved[dataIndex++] = Math.max(-1, Math.min(1, left[i])) * 32767;
-                        interleaved[dataIndex++] = Math.max(-1, Math.min(1, right[i])) * 32767;
+                    // --- 修正：建立獨立的 L/R Int16 陣列 ---
+                    const leftInt16 = new Int16Array(leftFloat.length);
+                    const rightInt16 = new Int16Array(rightFloat.length);
+
+                    for (let i = 0; i < leftFloat.length; i++) {
+                        leftInt16[i] = Math.max(-1, Math.min(1, leftFloat[i])) * 32767;
+                        rightInt16[i] = Math.max(-1, Math.min(1, rightFloat[i])) * 32767;
                     }
-
+                    
+                    // --- 移除：不再需要手動交錯資料 ---
+                    // const interleaved = new Int16Array(...)
+                    // let dataIndex = 0;
+                    // for (let i = 0; i < left.length; i++) { ... }
+                    
                     const mp3Data = [];
-                    const bufferSize = 1152;
-                    for (let i = 0; i < interleaved.length; i += bufferSize) {
-                        const chunk = interleaved.subarray(i, i + bufferSize);
-                        const mp3buf = mp3encoder.encodeBuffer(chunk);
+                    const bufferSize = 1152; 
+
+                    // --- 修正：分塊處理獨立的 L/R 聲道 ---
+                    for (let i = 0; i < leftInt16.length; i += bufferSize) {
+                        const leftChunk = leftInt16.subarray(i, i + bufferSize);
+                        const rightChunk = rightInt16.subarray(i, i + bufferSize);
+                        
+                        // 傳遞兩個獨立的聲道緩衝區
+                        const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+
                         if (mp3buf.length > 0) {
                             mp3Data.push(mp3buf);
                         }
@@ -1880,4 +1890,5 @@
     </script>
 </body>
 </html>
+
 
