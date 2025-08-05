@@ -496,7 +496,7 @@
 
         .steps {
             display: flex;
-            gap: 2px;
+            gap: 1px;
             min-width: fit-content;
             align-items: center;
         }
@@ -726,15 +726,18 @@
             }
         }
 
-        @media (max-width: 800px) {
-            .tracks-controls {
-                width: 100%;
-            }
-        }
 		@media (max-width: 800px) {
             .step {
                 /* 在小螢幕上縮小步格內的數字字體，以配合變小的步格 */
                 font-size: 8px; 
+            }
+            /* 小螢幕的間隙已在 .steps 中設為 1px */
+        }
+        
+        @media (min-width: 801px) {
+            .steps {
+                 /* 恢復大螢幕的間隙 */
+                gap: 2px;
             }
         }
     </style>
@@ -1192,9 +1195,9 @@
                 const isSmallScreen = window.innerWidth < 800;
                 
                 // 為小螢幕設定更小的步格尺寸限制
-                const MIN_STEP_SIZE = isSmallScreen ? 16 : 20;
-                const MAX_STEP_SIZE = isSmallScreen ? 24 : 35;				
-                const STEP_GAP = 2;
+                const MIN_STEP_SIZE = isSmallScreen ? 14 : 20;
+                const MAX_STEP_SIZE = isSmallScreen ? 22 : 35;				
+                const STEP_GAP = isSmallScreen ? 1 : 2; // 間隙從 2px 縮小到 1px
                 const stepsToFit = 8 * this.stepsPerBeat;
                 const totalGapWidth = (stepsToFit - 1) * STEP_GAP;
                 const idealStepSize = (contentWidth - totalGapWidth) / stepsToFit;
