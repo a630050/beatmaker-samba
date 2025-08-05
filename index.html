@@ -345,6 +345,32 @@
             border: 1px solid rgba(0, 255, 136, 0.3);
         }
 
+		.track-steps.disabled {
+			opacity: 0.3;
+			background: rgba(128, 128, 128, 0.1) !important;
+			pointer-events: none;
+		}
+
+		.track-steps.disabled .track-cell {
+			background: rgba(128, 128, 128, 0.1) !important;
+			border-color: rgba(128, 128, 128, 0.2) !important;
+		}
+
+		.track-steps.disabled .track-cell.active {
+			background: rgba(128, 128, 128, 0.2) !important;
+		}
+
+		/* 確保音軌標籤在禁用時也變灰 */
+		.track-steps.disabled .track-label {
+			color: rgba(128, 128, 128, 0.6) !important;
+		}
+
+		.track-steps.disabled .step.beat-marker {
+			border-color: rgba(255, 170, 0, 0.3) !important;
+		}
+
+
+
         .track-number {
 			width: 32px;
 			height: 32px;
