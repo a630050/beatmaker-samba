@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beatmaker - 森巴鼓團練習程序</title>
+	
+	<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+	
     <style>
         :root {
             --step-size: 30px;
@@ -734,12 +737,27 @@
             /* 小螢幕的間隙已在 .steps 中設為 1px */
         }
         
+		.btn.loading {
+            cursor: wait;
+            background: linear-gradient(135deg, #555 0%, #333 100%);
+            box-shadow: none;
+            transform: none;
+        }
+
+        .author-credit {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+        }
+		
         @media (min-width: 801px) {
             .steps {
                  /* 恢復大螢幕的間隙 */
                 gap: 2px;
             }
         }
+		
     </style>
 </head>
 <body>
@@ -761,6 +779,7 @@
                 <div class="file-controls">
                     <button class="btn" id="exportBtn">匯出</button>
                     <button class="btn" id="importBtn">匯入</button>
+					<button class="btn action-btn" id="exportMp3Btn">匯出MP3</button>
                     <input type="file" class="file-input" id="fileInput" accept=".json">
                 </div>
             </div>
@@ -805,7 +824,13 @@
                 <div id="trackSteps"></div>
             </div>
         </div>
+		
+		<div class="author-credit">
+        本程式作者：徐承佑
+		</div>
     </div>
+	
+
 
     <div class="sound-panel" id="soundAdjustPanel">
         <h3 style="margin-bottom: 20px; color: #00ff88; text-align: center;">🎵 樂器音色調整</h3>
@@ -1108,6 +1133,7 @@
                 document.getElementById('reduceBtn').addEventListener('click', () => this.reduceBeats());
                 document.getElementById('exportBtn').addEventListener('click', () => this.exportPattern());
                 document.getElementById('importBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+				document.getElementById('exportMp3Btn').addEventListener('click', () => this.exportMP3());
                 document.getElementById('fileInput').addEventListener('change', (e) => this.importPattern(e.target.files[0]));
 
                 document.getElementById('selectBtn').addEventListener('click', () => this.toggleSelectionMode());
@@ -1701,6 +1727,142 @@
                     alert('匯入失敗：' + error.message);
                 }
                 document.getElementById('fileInput').value = '';
+            }
+			async exportMP3() {
+                if (this.isPlaying) this.stop();
+                
+                const exportBtn = document.getElementById('exportMp3Btn');
+                const originalText = exportBtn.textContent;
+                exportBtn.textContent = '處理中...';
+                exportBtn.disabled = true;
+                exportBtn.classList.add('loading');
+
+                try {
+                    const sampleRate = 44100;
+                    const oneLoopDuration = (this.totalBeats * this.stepsPerBeat) * (60 / this.bpm);
+                    const enabledTracks = this.tracks.filter(t => t.enabled);
+                    const numEnabledTracks = enabledTracks.length;
+
+                    if (numEnabledTracks === 0) {
+                        alert('沒有已啟用的音軌可以匯出！');
+						exportBtn.textContent = originalText;
+                        exportBtn.disabled = false;
+                        exportBtn.classList.remove('loading');
+                        return;
+                    }
+
+                    const totalDuration = this.mode === 'sequential' ? oneLoopDuration * numEnabledTracks : oneLoopDuration;
+					
+					if (totalDuration <= 0) {
+                        alert('無法匯出時長為零的音訊。');
+                        throw new Error("Total duration is zero.");
+                    }
+                    
+                    const offlineContext = new OfflineAudioContext(2, sampleRate * totalDuration, sampleRate);
+
+                    // 離線排程音訊
+                    if (this.mode === 'ensemble') {
+                        for (let step = 0; step < this.totalBeats * this.stepsPerBeat; step++) {
+                            const time = step * (60 / this.bpm / this.stepsPerBeat);
+                            this.tracks.forEach(track => {
+                                if (track.enabled && track.steps[step]) {
+                                    this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
+                                }
+                            });
+                        }
+                    } else { // sequential mode
+                        let loopStartTime = 0;
+                        enabledTracks.forEach(track => {
+                            for (let step = 0; step < this.totalBeats * this.stepsPerBeat; step++) {
+                                const time = loopStartTime + (step * (60 / this.bpm / this.stepsPerBeat));
+                                if (track.steps[step]) {
+                                    this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
+                                }
+                            }
+                            loopStartTime += oneLoopDuration;
+                        });
+                    }
+
+                    const renderedBuffer = await offlineContext.startRendering();
+					
+					const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128); // 2 channels, 44100Hz, 128kbps
+                    const left = renderedBuffer.getChannelData(0);  // Float32Array
+                    const right = renderedBuffer.getChannelData(1); // Float32Array
+                    
+                    // 建立一個足夠大的 Int16Array 來存放交錯的左右聲道資料
+                    const interleaved = new Int16Array(left.length + right.length);
+                    let dataIndex = 0;
+
+                    // 迴圈遍歷樣本，將左右聲道交錯放入 interleaved 陣列
+                    for (let i = 0; i < left.length; i++) {
+                        // 將 Float32 (-1.0 to 1.0) 轉換為 Int16 (-32767 to 32767)
+                        interleaved[dataIndex++] = Math.max(-1, Math.min(1, left[i])) * 32767;
+                        interleaved[dataIndex++] = Math.max(-1, Math.min(1, right[i])) * 32767;
+                    }
+
+                    const mp3Data = [];
+                    const bufferSize = 1152; // lamejs 建議的 MP3 frame size
+                    for (let i = 0; i < interleaved.length; i += bufferSize) {
+                        const chunk = interleaved.subarray(i, i + bufferSize);
+                        const mp3buf = mp3encoder.encodeBuffer(chunk);
+                        if (mp3buf.length > 0) {
+                            mp3Data.push(mp3buf);
+                        }
+                    }
+                    const flush_buffer = mp3encoder.flush();
+                    if (flush_buffer.length > 0) {
+                        mp3Data.push(flush_buffer);
+                    }
+
+                    const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `beatmaker-${new Date().toISOString().slice(0,10)}.mp3`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                } catch (error) {
+                    console.error('MP3 匯出失敗:', error);
+                    alert('匯出 MP3 時發生錯誤，詳情請見主控台。');
+                } finally {
+                    exportBtn.textContent = originalText;
+                    exportBtn.disabled = false;
+                    exportBtn.classList.remove('loading');
+                }
+            }
+
+            scheduleSound(context, time, drumType, soundEnabled = true, volume = 0.8) {
+                if (!soundEnabled) return;
+                try {
+                    const sound = this.drumSounds[drumType];
+                    if (!sound) return;
+                    
+                    const totalGain = sound.gain * volume;
+                    const gainNode = context.createGain();
+                    gainNode.connect(context.destination);
+                    gainNode.gain.setValueAtTime(0, time);
+                    gainNode.gain.linearRampToValueAtTime(totalGain, time + sound.attack);
+                    gainNode.gain.exponentialRampToValueAtTime(totalGain * sound.sustain, time + sound.attack + sound.decay);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, time + sound.attack + sound.decay + sound.release);
+
+                    const oscillator = context.createOscillator();
+                    oscillator.connect(gainNode);
+                    oscillator.type = sound.type;
+                    oscillator.frequency.setValueAtTime(sound.freq, time);
+                    
+                    if (drumType === 'cuica') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.5, time + sound.release);
+                    if (drumType === 'pandeiro') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.7, time + sound.decay);
+                    
+                    oscillator.start(time);
+                    oscillator.stop(time + sound.attack + sound.decay + sound.release + 0.1);
+                } catch (error) {
+                    console.warn(`排程聲音時發生錯誤 (t=${time}, drum=${drumType}):`, error);
+                }
             }
         }
 
