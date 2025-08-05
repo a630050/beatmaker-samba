@@ -188,6 +188,15 @@
             cursor: not-allowed;
         }
 
+        .expand-btn.reduce {
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .expand-btn.reduce:hover {
+            background: rgba(255, 68, 68, 0.2);
+        }
+
         .beats-info {
             color: #00ff88;
             font-weight: bold;
@@ -209,11 +218,51 @@
 			flex-shrink: 0;
 			background: rgba(0, 0, 0, 0.5);
 			border-radius: 10px;
-			padding: 8px;
+			padding: 8px 8px 40px 8px; /* 修改：底部增加空間給按鈕 */
 			margin-right: 10px;
-			margin-top: 20px; /* 新增：整體向下移動以對齊紅線軸下方的內容 */
+			margin-top: 20px;
 			overflow-y: auto;
 			border: 2px solid rgba(0, 255, 136, 0.3);
+			transition: width 0.3s ease, padding 0.3s ease;
+			position: relative;
+		}
+
+		/* 新增：摺疊狀態樣式 */
+		.tracks-controls.collapsed {
+			width: 60px;
+			padding: 8px 4px 32px 4px; /* 修改：摺疊狀態下的底部空間 */
+		}
+		
+		/* 新增：摺疊按鈕樣式 */
+		.collapse-btn {
+			position: absolute;
+			bottom: 10px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: rgba(0, 255, 136, 0.2);
+			border: 1px solid #00ff88;
+			color: #00ff88;
+			width: 32px;
+			height: 24px;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.3s ease;
+			z-index: 10;
+		}
+
+		.collapse-btn:hover {
+			background: rgba(0, 255, 136, 0.4);
+		}
+
+		.tracks-controls.collapsed .collapse-btn {
+			left: 50%;
+			bottom: 8px;
+			width: 28px;
+			height: 20px;
 		}
 
 
@@ -263,7 +312,33 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             min-height: 50px;
+			transition: all 0.3s ease; /* 新增過渡效果 */
         }
+		
+		.tracks-controls.collapsed .track-control-item {
+			padding: 8px 4px; /* 保持與展開狀態相同的垂直 padding */
+			margin-bottom: 8px; /* 保持與展開狀態相同的 margin */
+			min-height: 50px; /* 保持與展開狀態相同的最小高度 */
+			justify-content: center;
+			align-items: center; /* 確保垂直居中 */
+		}
+		
+		/* 新增：摺疊狀態下隱藏除了音軌編號外的所有元素 */
+		.tracks-controls.collapsed .drum-select,
+		.tracks-controls.collapsed .track-controls,
+		.tracks-controls.collapsed .volume-control {
+			display: none;
+		}
+
+		/* 修改音軌編號在摺疊狀態下的樣式 */
+		.tracks-controls.collapsed .track-number {
+			width: 32px; /* 保持原始大小 */
+			height: 32px; /* 保持原始大小 */
+			font-size: 14px; /* 保持原始字體大小 */
+			line-height: 32px; /* 確保垂直居中 */
+			text-align: center;
+			flex-shrink: 0; /* 防止縮小 */
+		}
 
         .track-control-item.current-playing {
             background: rgba(0, 255, 136, 0.15);
@@ -271,17 +346,17 @@
         }
 
         .track-number {
-            background: #00ff88;
-            color: black;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-            font-size: 14px;
+			width: 32px;
+			height: 32px;
+			font-size: 14px;
+			line-height: 32px;
+			text-align: center;
+			flex-shrink: 0;
+			background: rgba(0, 255, 136, 0.2);
+			border: 1px solid #00ff88;
+			color: #00ff88;
+			border-radius: 4px;
+			font-weight: bold;
         }
 
 		.drum-select {
@@ -629,6 +704,7 @@
                 <button class="beat-setting-btn" data-beat-setting="8">8格一拍</button>
             </div>
             <div class="expand-controls">
+                <button class="expand-btn reduce" id="reduceBtn">-</button>
                 <button class="expand-btn" id="expandBtn">+</button>
                 <span class="beats-info" id="beatsInfo">8拍</span>
             </div>
@@ -643,11 +719,12 @@
         </div>
 
         <div class="sequencer">
-            <!-- 左側固定控制區域 -->
-            <div class="tracks-controls">
-                
-                <div id="trackControls"></div>
-            </div>
+			<!-- 左側固定控制區域 -->
+			<div class="tracks-controls" id="tracksControls">
+				<button class="collapse-btn" id="collapseBtn" title="摺疊/展開控制面板">◀</button>
+				<div id="trackControls"></div>
+			</div>
+
             
             <!-- 右側捲動區域 -->
             <div class="tracks-sequencer">
@@ -685,11 +762,12 @@
                 this.tracks = [];
                 this.totalBeats = 8;
                 this.maxBeats = 64;
+                this.minBeats = 4; // 新增：最小拍數限制
                 this.stepsPerBeat = 4; // 新增：每拍的格數，預設4格一拍
                 
                 // 音軌標籤和預設樂器
                 this.trackLabels = ['R', 'C', 'S1', 'S2', 'S3', 'O'];
-                this.defaultDrums = ['repinique', 'caixa', 'surdo', 'surdo', 'surdo', 'pandeiro'];
+                this.defaultDrums = ['repinique', 'caixa', 'surdo1', 'surdo2', 'surdo3', 'pandeiro'];
                 
                 // 樂器音色設定（可調整）
                 this.drumSounds = {
@@ -703,8 +781,8 @@
                         release: 0.4,
                         gain: 0.7
                     },
-                    'surdo': { 
-                        name: 'Surdo', 
+                    'surdo1': { 
+                        name: 'Surdo 1', 
                         freq: 55, 
                         type: 'triangle',
                         attack: 0.02,
@@ -712,6 +790,26 @@
                         sustain: 0.1,
                         release: 0.8,
                         gain: 1.0
+                    },
+                    'surdo2': { 
+                        name: 'Surdo 2', 
+                        freq: 65, 
+                        type: 'triangle',
+                        attack: 0.02,
+                        decay: 0.7,
+                        sustain: 0.1,
+                        release: 0.7,
+                        gain: 0.9
+                    },
+                    'surdo3': { 
+                        name: 'Surdo 3', 
+                        freq: 75, 
+                        type: 'triangle',
+                        attack: 0.02,
+                        decay: 0.6,
+                        sustain: 0.1,
+                        release: 0.6,
+                        gain: 0.8
                     },
                     'caixa': { 
                         name: 'Caixa', 
@@ -769,15 +867,64 @@
                 this.initAudio();
                 this.initTracks();
                 this.initUI();
+				
+				// 新增：頁面可見性變化處理（針對 iPad 背景切換問題）
+				document.addEventListener('visibilitychange', () => {
+					if (document.visibilityState === 'visible' && this.audioContext) {
+						// 頁面重新可見時，嘗試恢復音頻上下文
+						if (this.audioContext.state === 'suspended') {
+							this.audioContext.resume().catch(e => {
+								console.warn('Failed to resume audio on visibility change:', e);
+							});
+						}
+					}
+				});
+				
+				
             }
 
-            async initAudio() {
-                try {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                } catch (e) {
-                    console.warn('Web Audio API not supported');
-                }
-            }
+			async initAudio() {
+				try {
+					this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+					
+					// 針對 iOS/iPad 的特殊處理
+					if (this.audioContext.state === 'suspended') {
+						// 創建一個用戶交互來啟動音頻上下文的處理函數
+						this.setupAudioContextResume();
+					}
+				} catch (e) {
+					console.warn('Web Audio API not supported');
+				}
+			}
+
+					// 新增方法：設置音頻上下文恢復機制
+					setupAudioContextResume() {
+						const resumeAudio = async () => {
+							if (this.audioContext && this.audioContext.state === 'suspended') {
+								try {
+									await this.audioContext.resume();
+									console.log('Audio context resumed');
+								} catch (e) {
+									console.warn('Failed to resume audio context:', e);
+								}
+							}
+						};
+
+						// 在多個用戶交互事件中嘗試恢復音頻上下文
+						const events = ['touchstart', 'touchend', 'mousedown', 'keydown', 'click'];
+						const resumeOnce = async () => {
+							await resumeAudio();
+							// 移除事件監聽器，避免重複執行
+							events.forEach(event => {
+								document.removeEventListener(event, resumeOnce);
+							});
+						};
+
+						events.forEach(event => {
+							document.addEventListener(event, resumeOnce, { once: true });
+						});
+					}
+
 
             initTracks() {
                 this.tracks = Array(6).fill().map((_, i) => ({
@@ -808,11 +955,11 @@
                 const topControls = document.getElementById('soundControlsTop');
                 const bottomControls = document.getElementById('soundControlsBottom');
                 
-                // 上排4個樂器
-                topControls.innerHTML = drumKeys.slice(0, 4).map(key => this.createSoundControlHTML(key)).join('');
+                // 上排5個樂器
+                topControls.innerHTML = drumKeys.slice(0, 5).map(key => this.createSoundControlHTML(key)).join('');
                 
-                // 下排3個樂器
-                bottomControls.innerHTML = drumKeys.slice(4, 7).map(key => this.createSoundControlHTML(key)).join('');
+                // 下排4個樂器
+                bottomControls.innerHTML = drumKeys.slice(5, 9).map(key => this.createSoundControlHTML(key)).join('');
             }
 
             createSoundControlHTML(key) {
@@ -858,7 +1005,6 @@
                     const drumOptions = Object.keys(this.drumSounds).map(key => 
                         `<option value="${key}" ${track.drumType === key ? 'selected' : ''}>${this.drumSounds[key].name}</option>`
                     ).join('');
-
                     controlElement.innerHTML = `
                         <div class="track-number">${this.trackLabels[trackIndex]}</div>
                         <select class="drum-select" data-track="${trackIndex}">
@@ -908,9 +1054,11 @@
 
             updateExpandButton() {
                 const expandBtn = document.getElementById('expandBtn');
+                const reduceBtn = document.getElementById('reduceBtn');
                 const beatsInfo = document.getElementById('beatsInfo');
                 
                 expandBtn.disabled = this.totalBeats >= this.maxBeats;
+                reduceBtn.disabled = this.totalBeats <= this.minBeats;
                 beatsInfo.textContent = `${this.totalBeats}拍`;
             }
 
@@ -949,6 +1097,11 @@
                     this.expandBeats();
                 });
 
+                // 新增：減少拍數按鈕
+                document.getElementById('reduceBtn').addEventListener('click', () => {
+                    this.reduceBeats();
+                });
+
                 // 匯出按鈕
                 document.getElementById('exportBtn').addEventListener('click', () => {
                     this.exportPattern();
@@ -972,6 +1125,12 @@
                         this.play();
                     }
                 });
+
+				// 摺疊按鈕事件
+				document.getElementById('collapseBtn').addEventListener('click', () => {
+					this.toggleControlsCollapse();
+				});
+
 
                 // 模式切換
                 document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -1045,6 +1204,25 @@
                 });
             }
 
+			// 新增方法：切換控制面板摺疊狀態
+			toggleControlsCollapse() {
+				const tracksControls = document.getElementById('tracksControls');
+				const collapseBtn = document.getElementById('collapseBtn');
+				
+				tracksControls.classList.toggle('collapsed');
+				
+				if (tracksControls.classList.contains('collapsed')) {
+					collapseBtn.textContent = '▶';
+					collapseBtn.title = '展開控制面板';
+				} else {
+					collapseBtn.textContent = '◀';
+					collapseBtn.title = '摺疊控制面板';
+				}
+			}
+
+
+
+
             // 新增：拍子設定變更方法
             changeBeatSetting(newStepsPerBeat) {
                 if (this.isPlaying) {
@@ -1099,7 +1277,20 @@
                 }
             }
 
-            play() {
+            async play() {
+				if (!this.audioContext) {
+					await this.initAudio();
+				}
+
+				if (this.audioContext && this.audioContext.state === 'suspended') {
+					try {
+						await this.audioContext.resume();
+						console.log('Audio context resumed on play');
+					} catch (e) {
+						console.warn('Failed to resume audio context on play:', e);
+					}
+				}				
+
                 if (!this.audioContext) {
                     this.initAudio();
                 }
@@ -1260,7 +1451,7 @@
                 });
             }
 
-            // 優化：針對八格一拍的自動捲動邏輯
+            // 優化：針對不同拍子設定的自動捲動邏輯
             autoScroll() {
                 const sequencer = document.querySelector('.tracks-sequencer');
                 const stepWidth = this.getStepWidth();
@@ -1329,10 +1520,10 @@
                 if (this.totalBeats >= this.maxBeats) return;
 
                 const oldBeats = this.totalBeats;
-                this.totalBeats += 8;
+                this.totalBeats += 4; // 修改：從8改為4
 
                 this.tracks.forEach(track => {
-                    const newSteps = Array(8 * this.stepsPerBeat).fill(false);
+                    const newSteps = Array(4 * this.stepsPerBeat).fill(false); // 修改：從8改為4
                     track.steps = [...track.steps, ...newSteps];
                 });
 
@@ -1344,11 +1535,66 @@
                 }, 100);
             }
 
+            // 新增：減少拍數方法
+            reduceBeats() {
+                if (this.totalBeats <= this.minBeats) return;
+
+                if (this.isPlaying) {
+                    this.stop();
+                }
+
+                this.totalBeats -= 4; // 減少4拍
+
+                this.tracks.forEach(track => {
+                    // 從後面截取掉4拍的步驟
+                    const newLength = this.totalBeats * this.stepsPerBeat;
+                    track.steps = track.steps.slice(0, newLength);
+                });
+
+                this.renderTracks();
+                this.updateExpandButton();
+                
+                // 確保捲動位置不超出新的範圍
+                setTimeout(() => {
+                    const sequencer = document.querySelector('.tracks-sequencer');
+                    const maxScroll = Math.max(0, (this.totalBeats * this.stepsPerBeat * (this.getStepWidth() + 2)) - sequencer.clientWidth);
+                    if (sequencer.scrollLeft > maxScroll) {
+                        sequencer.scrollTo({
+                            left: maxScroll,
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 100);
+            }
+
             testSound(drumType) {
                 this.playSound(drumType, true, 0.8);
             }
 
-            playSound(drumType, soundEnabled = true, volume = 0.8) {
+            async playSound(drumType, soundEnabled = true, volume = 0.8) {
+				if (!soundEnabled) return;
+					
+					// 新增：額外的音頻上下文檢查和恢復
+					if (!this.audioContext) {
+						await this.initAudio();
+						return; // 初次初始化後跳過這次播放
+					}
+
+					if (this.audioContext.state === 'suspended') {
+						try {
+							await this.audioContext.resume();
+						} catch (e) {
+							console.warn('Failed to resume audio context in playSound:', e);
+							return;
+						}
+					}
+
+					if (this.audioContext.state !== 'running') {
+						console.warn('Audio context not running, skipping sound');
+						return;
+					}			
+			
+			
                 if (!this.audioContext || !soundEnabled) return;
 
                 try {
@@ -1410,8 +1656,8 @@
                         release: 0.4,
                         gain: 0.7
                     },
-                    'surdo': { 
-                        name: 'Surdo', 
+                    'surdo1': { 
+                        name: 'Surdo 1', 
                         freq: 55, 
                         type: 'triangle',
                         attack: 0.02,
@@ -1419,6 +1665,26 @@
                         sustain: 0.1,
                         release: 0.8,
                         gain: 1.0
+                    },
+                    'surdo2': { 
+                        name: 'Surdo 2', 
+                        freq: 65, 
+                        type: 'triangle',
+                        attack: 0.02,
+                        decay: 0.7,
+                        sustain: 0.1,
+                        release: 0.7,
+                        gain: 0.9
+                    },
+                    'surdo3': { 
+                        name: 'Surdo 3', 
+                        freq: 75, 
+                        type: 'triangle',
+                        attack: 0.02,
+                        decay: 0.6,
+                        sustain: 0.1,
+                        release: 0.6,
+                        gain: 0.8
                     },
                     'caixa': { 
                         name: 'Caixa', 
@@ -1525,7 +1791,7 @@
 
             exportPattern() {
                 const pattern = {
-                    version: '1.1', // 更新版本號
+                    version: '1.2', // 更新版本號
                     totalBeats: this.totalBeats,
                     bpm: this.bpm,
                     mode: this.mode,
@@ -1584,7 +1850,7 @@
                     while (this.tracks.length < 6) {
                         this.tracks.push({
                             id: this.tracks.length,
-                            drumType: this.defaultDrums[this.tracks.length] || 'surdo',
+                            drumType: this.defaultDrums[this.tracks.length] || 'surdo1',
                             steps: Array(this.totalBeats * this.stepsPerBeat).fill(false),
                             enabled: true,
                             soundEnabled: true,
@@ -1632,4 +1898,3 @@
     </script>
 </body>
 </html>
-
