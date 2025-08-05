@@ -1728,7 +1728,15 @@
                 }
                 document.getElementById('fileInput').value = '';
             }
-			async exportMP3() {
+
+		async exportMP3() {
+                // 新增一個檢查，確保 lamejs 已載入
+                if (typeof lamejs === 'undefined') {
+                    alert('MP3 編碼函式庫 (lame.min.js) 載入失敗！請檢查您的網路連線或 CDN 連結是否正確。');
+                    console.error("lamejs is not defined. MP3 export cannot proceed.");
+                    return;
+                }
+
                 if (this.isPlaying) this.stop();
                 
                 const exportBtn = document.getElementById('exportMp3Btn');
@@ -1758,7 +1766,8 @@
                         throw new Error("Total duration is zero.");
                     }
                     
-                    const offlineContext = new OfflineAudioContext(2, sampleRate * totalDuration, sampleRate);
+                    // --- 這裡是唯一的修改點 ---
+                    const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
 
                     // 離線排程音訊
                     if (this.mode === 'ensemble') {
@@ -1785,23 +1794,20 @@
 
                     const renderedBuffer = await offlineContext.startRendering();
 					
-					const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128); // 2 channels, 44100Hz, 128kbps
-                    const left = renderedBuffer.getChannelData(0);  // Float32Array
-                    const right = renderedBuffer.getChannelData(1); // Float32Array
+					const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128);
+                    const left = renderedBuffer.getChannelData(0);
+                    const right = renderedBuffer.getChannelData(1);
                     
-                    // 建立一個足夠大的 Int16Array 來存放交錯的左右聲道資料
                     const interleaved = new Int16Array(left.length + right.length);
                     let dataIndex = 0;
 
-                    // 迴圈遍歷樣本，將左右聲道交錯放入 interleaved 陣列
                     for (let i = 0; i < left.length; i++) {
-                        // 將 Float32 (-1.0 to 1.0) 轉換為 Int16 (-32767 to 32767)
                         interleaved[dataIndex++] = Math.max(-1, Math.min(1, left[i])) * 32767;
                         interleaved[dataIndex++] = Math.max(-1, Math.min(1, right[i])) * 32767;
                     }
 
                     const mp3Data = [];
-                    const bufferSize = 1152; // lamejs 建議的 MP3 frame size
+                    const bufferSize = 1152;
                     for (let i = 0; i < interleaved.length; i += bufferSize) {
                         const chunk = interleaved.subarray(i, i + bufferSize);
                         const mp3buf = mp3encoder.encodeBuffer(chunk);
@@ -1835,6 +1841,7 @@
                     exportBtn.classList.remove('loading');
                 }
             }
+			
 
             scheduleSound(context, time, drumType, soundEnabled = true, volume = 0.8) {
                 if (!soundEnabled) return;
@@ -1873,3 +1880,4 @@
     </script>
 </body>
 </html>
+
