@@ -782,6 +782,17 @@
 					<button class="btn action-btn" id="exportMp3Btn">匯出MP3</button>
                     <input type="file" class="file-input" id="fileInput" accept=".json">
                 </div>
+				<label for="loopCountSelect" style="color: white; margin-left: 10px;">循環次數:</label>
+				<select id="loopCountSelect" style="background: rgba(0,0,0,0.7); color: #00ff88; border: 1px solid #00ff88; border-radius: 5px; padding: 4px;">
+				  <option value="1" selected>1</option>
+				  <option value="2">2</option>
+				  <option value="3">3</option>
+				  <option value="4">4</option>
+				  <option value="5">5</option>
+				  <option value="6">6</option>
+				  <option value="7">7</option>
+				  <option value="8">8</option>
+				</select>
             </div>
         </div>
 
@@ -826,7 +837,7 @@
         </div>
 		
 		<div class="author-credit">
-        本程式作者：徐承佑   森巴鼓指導老師：陳仰真
+        程式作者：徐承佑   森巴鼓指導老師：陳仰真
 		</div>
     </div>
 	
@@ -1729,7 +1740,15 @@
                 document.getElementById('fileInput').value = '';
             }
 
-	                  async exportMP3() {
+	        async exportMP3() {
+				const loopCountSelect = document.getElementById('loopCountSelect');
+				let loopCount = 1;
+				if (loopCountSelect) {
+					loopCount = parseInt(loopCountSelect.value);
+					if (isNaN(loopCount) || loopCount < 1) loopCount = 1;
+					if (loopCount > 8) loopCount = 8;
+				}	  
+				
                 if (typeof lamejs === 'undefined') {
                     alert('MP3 編碼函式庫 (lame.min.js) 載入失敗！請檢查您的網路連線或 CDN 連結是否正確。');
                     console.error("lamejs is not defined. MP3 export cannot proceed.");
@@ -1744,67 +1763,61 @@
                 exportBtn.disabled = true;
                 exportBtn.classList.add('loading');
 
-                try {
-                    const sampleRate = 44100;
-                    // --- 核心修正：清晰地分離兩種模式的長度計算 ---
-                    
-                    // 單個循環（也就是介面上顯示的所有拍子）的總步數
-                    const stepsInOneLoop = this.totalBeats * this.stepsPerBeat;
-                    // 單個循環的總秒數
-                    const durationOfOneLoop = stepsInOneLoop * ((60 / this.bpm) / this.stepsPerBeat);
+				try {
+					const sampleRate = 44100;
+					const stepsInOneLoop = this.totalBeats * this.stepsPerBeat;
+					const durationOfOneLoop = stepsInOneLoop * ((60 / this.bpm) / this.stepsPerBeat);
 
-                    let totalDuration = 0;
-                    
-                    if (this.mode === 'ensemble') {
-                        // 合奏模式：總長度就是一個循環的長度
-                        totalDuration = durationOfOneLoop;
-                    } else { // sequential mode
-                        // 循環模式：總長度是一個循環長度 * 啟用的音軌數量
-                        const enabledTracks = this.tracks.filter(t => t.enabled);
-                        totalDuration = durationOfOneLoop * enabledTracks.length;
-                    }
+					let totalDuration = 0;
 
-                    // 檢查總長度是否有效
-                    if (totalDuration <= 0) {
-                        alert("無法匯出時長為零的音訊。請確保有設定拍子且有啟用的音軌（在循環模式下）。");
-                        throw new Error("Calculated total duration is zero or less.");
-                    }
-                    
-                    // 加上 1 秒的緩衝，確保最後的鼓聲尾音不會被切掉
-                    totalDuration += 1.0; 
+					if (this.mode === 'ensemble') {
+						// 合奏模式：總長度 = 一個循環長度 * 循環次數
+						totalDuration = durationOfOneLoop * loopCount;
+					} else { // sequential mode
+						// 循環模式：總長度 = 一個循環長度 * 啟用音軌數量 * 循環次數
+						const enabledTracks = this.tracks.filter(t => t.enabled);
+						totalDuration = durationOfOneLoop * enabledTracks.length * loopCount;
+					}
 
-                    const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
-                    
-                    // --- 核心修正：清晰地分離兩種模式的排程邏輯 ---
-                    
-                    const stepDurationInSeconds = (60 / this.bpm) / this.stepsPerBeat;
+					// 檢查總長度是否有效
+					if (totalDuration <= 0) {
+						alert("無法匯出時長為零的音訊。請確保有設定拍子且有啟用的音軌（在循環模式下）。");
+						throw new Error("Calculated total duration is zero or less.");
+					}
 
-                    if (this.mode === 'ensemble') {
-                        // 只排程一個循環
-                        for (let step = 0; step < stepsInOneLoop; step++) {
-                            const time = step * stepDurationInSeconds;
-                            this.tracks.forEach(track => {
-                                if (track.enabled && track.steps[step]) {
-                                    this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
-                                }
-                            });
-                        }
-                    } else { // sequential mode
-                        // 按順序排程每個啟用的音軌
-                        const enabledTracks = this.tracks.filter(t => t.enabled);
-                        let loopStartTime = 0;
-                        enabledTracks.forEach(track => {
-                            for (let step = 0; step < stepsInOneLoop; step++) {
-                                // 計算每個音符在總時間軸上的絕對位置
-                                const time = loopStartTime + (step * stepDurationInSeconds);
-                                if (track.steps[step]) {
-                                    this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
-                                }
-                            }
-                            // 為下一個音軌的循環更新起始時間
-                            loopStartTime += durationOfOneLoop;
-                        });
-                    }
+					totalDuration += 1.0; // 緩衝時間
+
+					const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
+
+					const stepDurationInSeconds = (60 / this.bpm) / this.stepsPerBeat;
+
+					if (this.mode === 'ensemble') {
+						for (let loop = 0; loop < loopCount; loop++) {
+							for (let step = 0; step < stepsInOneLoop; step++) {
+								const time = loop * durationOfOneLoop + step * stepDurationInSeconds;
+								this.tracks.forEach(track => {
+									if (track.enabled && track.steps[step]) {
+										this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
+									}
+								});
+							}
+						}
+					} else { // sequential mode
+						const enabledTracks = this.tracks.filter(t => t.enabled);
+						let loopStartTime = 0;
+						for (let loop = 0; loop < loopCount; loop++) {
+							enabledTracks.forEach(track => {
+								for (let step = 0; step < stepsInOneLoop; step++) {
+									const time = loopStartTime + loop * durationOfOneLoop * enabledTracks.length + step * stepDurationInSeconds;
+									if (track.steps[step]) {
+										this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
+									}
+								}
+								loopStartTime += durationOfOneLoop;
+							});
+							loopStartTime = 0; // 重置以便下一個loop計算
+						}
+					}
 
                     // --- 後續的 MP3 編碼部分完全不變 ---
 
@@ -1863,34 +1876,38 @@
             }
 			
 
-            scheduleSound(context, time, drumType, soundEnabled = true, volume = 0.8) {
-                if (!soundEnabled) return;
-                try {
-                    const sound = this.drumSounds[drumType];
-                    if (!sound) return;
-                    
-                    const totalGain = sound.gain * volume;
-                    const gainNode = context.createGain();
-                    gainNode.connect(context.destination);
-                    gainNode.gain.setValueAtTime(0, time);
-                    gainNode.gain.linearRampToValueAtTime(totalGain, time + sound.attack);
-                    gainNode.gain.exponentialRampToValueAtTime(totalGain * sound.sustain, time + sound.attack + sound.decay);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, time + sound.attack + sound.decay + sound.release);
+			scheduleSound(context, time, drumType, soundEnabled = true, volume = 3.0) {
+				if (!soundEnabled) return;
+				try {
+					const sound = this.drumSounds[drumType];
+					if (!sound) return;
+					
+					// 調整增益倍率，讓音量更大
+					const gainMultiplier = 3.0; // 可根據需求調整
+					const totalGain = sound.gain * volume * gainMultiplier;
 
-                    const oscillator = context.createOscillator();
-                    oscillator.connect(gainNode);
-                    oscillator.type = sound.type;
-                    oscillator.frequency.setValueAtTime(sound.freq, time);
-                    
-                    if (drumType === 'cuica') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.5, time + sound.release);
-                    if (drumType === 'pandeiro') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.7, time + sound.decay);
-                    
-                    oscillator.start(time);
-                    oscillator.stop(time + sound.attack + sound.decay + sound.release + 0.1);
-                } catch (error) {
-                    console.warn(`排程聲音時發生錯誤 (t=${time}, drum=${drumType}):`, error);
-                }
-            }
+					const gainNode = context.createGain();
+					gainNode.connect(context.destination);
+					gainNode.gain.setValueAtTime(0, time);
+					gainNode.gain.linearRampToValueAtTime(totalGain, time + sound.attack);
+					gainNode.gain.exponentialRampToValueAtTime(totalGain * sound.sustain, time + sound.attack + sound.decay);
+					gainNode.gain.exponentialRampToValueAtTime(0.001, time + sound.attack + sound.decay + sound.release);
+
+					const oscillator = context.createOscillator();
+					oscillator.connect(gainNode);
+					oscillator.type = sound.type;
+					oscillator.frequency.setValueAtTime(sound.freq, time);
+					
+					if (drumType === 'cuica') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.5, time + sound.release);
+					if (drumType === 'pandeiro') oscillator.frequency.exponentialRampToValueAtTime(sound.freq * 0.7, time + sound.decay);
+					
+					oscillator.start(time);
+					oscillator.stop(time + sound.attack + sound.decay + sound.release + 0.1);
+				} catch (error) {
+					console.warn(`排程聲音時發生錯誤 (t=${time}, drum=${drumType}):`, error);
+				}
+			}
+
         }
 
         let beatmaker;
@@ -1900,8 +1917,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
