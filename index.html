@@ -1729,7 +1729,7 @@
                 document.getElementById('fileInput').value = '';
             }
 
-	            async exportMP3() {
+	                  async exportMP3() {
                 if (typeof lamejs === 'undefined') {
                     alert('MP3 編碼函式庫 (lame.min.js) 載入失敗！請檢查您的網路連線或 CDN 連結是否正確。');
                     console.error("lamejs is not defined. MP3 export cannot proceed.");
@@ -1746,31 +1746,43 @@
 
                 try {
                     const sampleRate = 44100;
-                    const oneLoopDuration = (this.totalBeats * this.stepsPerBeat) * (60 / this.bpm);
-                    const enabledTracks = this.tracks.filter(t => t.enabled);
-                    const numEnabledTracks = enabledTracks.length;
+                    // --- 核心修正：清晰地分離兩種模式的長度計算 ---
+                    
+                    // 單個循環（也就是介面上顯示的所有拍子）的總步數
+                    const stepsInOneLoop = this.totalBeats * this.stepsPerBeat;
+                    // 單個循環的總秒數
+                    const durationOfOneLoop = stepsInOneLoop * ((60 / this.bpm) / this.stepsPerBeat);
 
-                    if (numEnabledTracks === 0) {
-                        alert('沒有已啟用的音軌可以匯出！');
-						exportBtn.textContent = originalText;
-                        exportBtn.disabled = false;
-                        exportBtn.classList.remove('loading');
-                        return;
+                    let totalDuration = 0;
+                    
+                    if (this.mode === 'ensemble') {
+                        // 合奏模式：總長度就是一個循環的長度
+                        totalDuration = durationOfOneLoop;
+                    } else { // sequential mode
+                        // 循環模式：總長度是一個循環長度 * 啟用的音軌數量
+                        const enabledTracks = this.tracks.filter(t => t.enabled);
+                        totalDuration = durationOfOneLoop * enabledTracks.length;
                     }
 
-                    const totalDuration = this.mode === 'sequential' ? oneLoopDuration * numEnabledTracks : oneLoopDuration;
-					
-					if (totalDuration <= 0) {
-                        alert('無法匯出時長為零的音訊。');
-                        throw new Error("Total duration is zero.");
+                    // 檢查總長度是否有效
+                    if (totalDuration <= 0) {
+                        alert("無法匯出時長為零的音訊。請確保有設定拍子且有啟用的音軌（在循環模式下）。");
+                        throw new Error("Calculated total duration is zero or less.");
                     }
                     
-                    const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
+                    // 加上 1 秒的緩衝，確保最後的鼓聲尾音不會被切掉
+                    totalDuration += 1.0; 
 
-                    // 離線排程音訊 (這部分不變)
+                    const offlineContext = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
+                    
+                    // --- 核心修正：清晰地分離兩種模式的排程邏輯 ---
+                    
+                    const stepDurationInSeconds = (60 / this.bpm) / this.stepsPerBeat;
+
                     if (this.mode === 'ensemble') {
-                        for (let step = 0; step < this.totalBeats * this.stepsPerBeat; step++) {
-                            const time = step * (60 / this.bpm / this.stepsPerBeat);
+                        // 只排程一個循環
+                        for (let step = 0; step < stepsInOneLoop; step++) {
+                            const time = step * stepDurationInSeconds;
                             this.tracks.forEach(track => {
                                 if (track.enabled && track.steps[step]) {
                                     this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
@@ -1778,17 +1790,23 @@
                             });
                         }
                     } else { // sequential mode
+                        // 按順序排程每個啟用的音軌
+                        const enabledTracks = this.tracks.filter(t => t.enabled);
                         let loopStartTime = 0;
                         enabledTracks.forEach(track => {
-                            for (let step = 0; step < this.totalBeats * this.stepsPerBeat; step++) {
-                                const time = loopStartTime + (step * (60 / this.bpm / this.stepsPerBeat));
+                            for (let step = 0; step < stepsInOneLoop; step++) {
+                                // 計算每個音符在總時間軸上的絕對位置
+                                const time = loopStartTime + (step * stepDurationInSeconds);
                                 if (track.steps[step]) {
                                     this.scheduleSound(offlineContext, time, track.drumType, track.soundEnabled, track.volume);
                                 }
                             }
-                            loopStartTime += oneLoopDuration;
+                            // 為下一個音軌的循環更新起始時間
+                            loopStartTime += durationOfOneLoop;
                         });
                     }
+
+                    // --- 後續的 MP3 編碼部分完全不變 ---
 
                     const renderedBuffer = await offlineContext.startRendering();
 					
@@ -1796,7 +1814,6 @@
                     const leftFloat = renderedBuffer.getChannelData(0);
                     const rightFloat = renderedBuffer.getChannelData(1);
 
-                    // --- 修正：建立獨立的 L/R Int16 陣列 ---
                     const leftInt16 = new Int16Array(leftFloat.length);
                     const rightInt16 = new Int16Array(rightFloat.length);
 
@@ -1805,20 +1822,13 @@
                         rightInt16[i] = Math.max(-1, Math.min(1, rightFloat[i])) * 32767;
                     }
                     
-                    // --- 移除：不再需要手動交錯資料 ---
-                    // const interleaved = new Int16Array(...)
-                    // let dataIndex = 0;
-                    // for (let i = 0; i < left.length; i++) { ... }
-                    
                     const mp3Data = [];
                     const bufferSize = 1152; 
 
-                    // --- 修正：分塊處理獨立的 L/R 聲道 ---
                     for (let i = 0; i < leftInt16.length; i += bufferSize) {
                         const leftChunk = leftInt16.subarray(i, i + bufferSize);
                         const rightChunk = rightInt16.subarray(i, i + bufferSize);
                         
-                        // 傳遞兩個獨立的聲道緩衝區
                         const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
 
                         if (mp3buf.length > 0) {
@@ -1890,5 +1900,6 @@
     </script>
 </body>
 </html>
+
 
 
